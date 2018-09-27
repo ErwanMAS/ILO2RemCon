@@ -54,7 +54,7 @@ public class Connection implements Runnable, java.awt.event.ActionListener
     localMediaAccess.close();
     
     if ((this.device == 1) && (l > 2949120L)) {
-      this.device = 3;
+      this.device = USBKEY;
     }
     this.digest = new VMD5();
   }
@@ -188,9 +188,9 @@ public class Connection implements Runnable, java.awt.event.ActionListener
     do {
       this.changing_disks = false;
       try {
-        if ((this.device == 1) || (this.device == 3)) {
+        if ((this.device == 1) || (this.device == USBKEY)) {
           this.scsi = new SCSIFloppy(this.s, this.in, this.out, this.target, this.targetIsDevice);
-        } else if (this.device == 2) {
+        } else if (this.device == CDROM) {
           if (this.targetIsDevice == 1) {
             this.scsi = new SCSIcdrom(this.s, this.in, this.out, this.target, 1);
           } else {
@@ -208,7 +208,7 @@ public class Connection implements Runnable, java.awt.event.ActionListener
 
       this.scsi.setWriteProt(this.writeprot);
       for (;;) {
-        if (((this.device == 1) || (this.device == 3)) && (this.scsi.getWriteProt())) {
+        if (((this.device == FLOPPY) || (this.device == USBKEY)) && (this.scsi.getWriteProt())) {
           this.v.roCbox.setState(true);
           this.v.roCbox.setEnabled(false);
           this.v.roCbox.repaint();
@@ -230,16 +230,16 @@ public class Connection implements Runnable, java.awt.event.ActionListener
             D.println(0, "Exception closing connection " + localIOException2);
           }
           this.scsi = null;
-          if ((this.device == 1) || (this.device == 3)) {
+          if ((this.device == FLOPPY) || (this.device == USBKEY)) {
             this.v.roCbox.setEnabled(true);
             this.v.roCbox.repaint();
           }
         }
       }
     } while (this.changing_disks);
-    /*if ((this.device == 1) || (this.device == 3)) {
+    /*if ((this.device == FLOPPY) || (this.device == USBKEY)) {
       this.v.fdDisconnect();
-    } else if (this.device == 2) {
+    } else if (this.device == CDROM) {
       this.v.cdDisconnect();
     }*/
   }
