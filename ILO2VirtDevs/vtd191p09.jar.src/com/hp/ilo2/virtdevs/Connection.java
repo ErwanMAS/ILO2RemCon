@@ -43,10 +43,10 @@ public class Connection implements Runnable, java.awt.event.ActionListener
     int i = localMediaAccess.devtype(paramString2);
     if ((i == 2) || (i == 5)) {
       this.targetIsDevice = 1;
-      D.println(0, "Got CD or removable connection\n");
+      D.println(D.FATAL, "Got CD or removable connection\n");
     } else {
       this.targetIsDevice = 0;
-      D.println(0, "Got NO CD or removable connection\n");
+      D.println(D.FATAL, "Got NO CD or removable connection\n");
     }
     
     int j = localMediaAccess.open(paramString2, this.targetIsDevice);
@@ -99,8 +99,8 @@ public class Connection implements Runnable, java.awt.event.ActionListener
     this.out.flush();
     
     this.in.read(arrayOfByte1, 0, 4);
-    D.println(3, "Hello response0: " + D.hex(arrayOfByte1[0], 2));
-    D.println(3, "Hello response1: " + D.hex(arrayOfByte1[1], 2));
+    D.println(D.VERBOSE, "Hello response0: " + D.hex(arrayOfByte1[0], 2));
+    D.println(D.VERBOSE, "Hello response1: " + D.hex(arrayOfByte1[1], 2));
     
 
 
@@ -109,10 +109,10 @@ public class Connection implements Runnable, java.awt.event.ActionListener
 
 
 
-      D.println(1, "Connected.  Protocol version = " + (arrayOfByte1[3] & 0xFF) + "." + (arrayOfByte1[2] & 0xFF));
+      D.println(D.INFORM, "Connected.  Protocol version = " + (arrayOfByte1[3] & 0xFF) + "." + (arrayOfByte1[2] & 0xFF));
     }
     else {
-      D.println(0, "Unexpected Hello Response!");
+      D.println(D.FATAL, "Unexpected Hello Response!");
       this.s.close();
       this.s = null;
       this.in = null;this.out = null;
@@ -197,12 +197,12 @@ public class Connection implements Runnable, java.awt.event.ActionListener
             this.scsi = new SCSIcdimage(this.s, this.in, this.out, this.target, 0, this.v);
           }
         } else {
-          D.println(0, "Unsupported virtual device " + this.device);
+          D.println(D.FATAL, "Unsupported virtual device " + this.device);
           
           return;
         }
       } catch (Exception localException) {
-        D.println(0, "Exception while opening " + this.target + "(" + localException + ")");
+        D.println(D.FATAL, "Exception while opening " + this.target + "(" + localException + ")");
       }
       
 
@@ -216,18 +216,18 @@ public class Connection implements Runnable, java.awt.event.ActionListener
         try {
           this.scsi.process();
         } catch (IOException localIOException1) {
-          D.println(1, "Exception in Connection::run() " + localIOException1);
+          D.println(D.INFORM, "Exception in Connection::run() " + localIOException1);
           localIOException1.printStackTrace();
           
 
 
 
-          D.println(3, "Closing scsi and socket");
+          D.println(D.VERBOSE, "Closing scsi and socket");
           try {
             this.scsi.close();
             if (!this.changing_disks) internal_close();
           } catch (IOException localIOException2) {
-            D.println(0, "Exception closing connection " + localIOException2);
+            D.println(D.FATAL, "Exception closing connection " + localIOException2);
           }
           this.scsi = null;
           if ((this.device == FLOPPY) || (this.device == USBKEY)) {

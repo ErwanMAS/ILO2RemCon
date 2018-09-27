@@ -65,7 +65,7 @@ public abstract class SCSI
   
   public boolean getWriteProt()
   {
-    D.println(3, "media.wp = " + this.media.wp());
+    D.println(D.VERBOSE, "media.wp = " + this.media.wp());
     return this.media.wp();
   }
   
@@ -147,7 +147,7 @@ public abstract class SCSI
         i = this.in.read(paramArrayOfByte, 0, paramInt);
       } catch (InterruptedIOException localInterruptedIOException) {
         this.reply.keepalive(true);
-        D.println(3, "Sending keepalive");
+        D.println(D.VERBOSE, "Sending keepalive");
         this.reply.send(this.out);
         this.out.flush();
         this.reply.keepalive(false);

@@ -22,15 +22,15 @@ public class SCSIcdimage extends SCSI
     super(paramSocket, paramInputStream, paramBufferedOutputStream, paramString, paramInt);
     this.cdi = paramvirtdevs;
     int i = this.media.open(paramString, 0);
-    D.println(1, "Media open returns " + i + " / " + this.media.size() + " bytes");
+    D.println(D.INFORM, "Media open returns " + i + " / " + this.media.size() + " bytes");
   }
   
   public void process()
     throws IOException
   {
-    D.println(1, "Device: " + this.selectedDevice + " (" + this.targetIsDevice + ")");
+    D.println(D.INFORM, "Device: " + this.selectedDevice + " (" + this.targetIsDevice + ")");
     read_command(this.req, 12);
-    D.print(1, "SCSI Request: ");
+    D.println(D.INFORM, "SCSI Request: ");
     D.hexdump(1, this.req, 12);
     
     this.media_sz = this.media.size();
@@ -84,7 +84,7 @@ public class SCSIcdimage extends SCSI
       client_get_event_status(this.req);
       break;
     default: 
-      D.println(0, "Unknown request:cmd = " + Integer.toHexString(this.req[0]));
+      D.println(D.FATAL, "Unknown request:cmd = " + Integer.toHexString(this.req[0]));
       this.reply.set(5, 36, 0, 0);
       this.reply.send(this.out);this.out.flush();
     }
@@ -104,14 +104,14 @@ public class SCSIcdimage extends SCSI
     int i = j != 0 ? SCSI.mk_int32(paramArrayOfByte, 6) : SCSI.mk_int16(paramArrayOfByte, 7);
     i *= 2048;
     
-    D.println(3, "CDImage :Client read " + l + ", len=" + i);
+    D.println(D.VERBOSE, "CDImage :Client read " + l + ", len=" + i);
     
     if (this.fdd_state == 0) {
-      D.println(3, "media not present");
+      D.println(D.VERBOSE, "media not present");
       this.reply.set(2, 58, 0, 0);
       i = 0;
     } else if (this.fdd_state == 1) {
-      D.println(3, "media changed");
+      D.println(D.VERBOSE, "media changed");
       this.reply.set(6, 40, 0, 0);
       i = 0;
       this.fdd_state = 2;
@@ -141,9 +141,9 @@ public class SCSIcdimage extends SCSI
 
 
 
-      D.println(3, "Media removal prevented");
+      D.println(D.VERBOSE, "Media removal prevented");
     } else {
-      D.println(3, "Media removal allowed");
+      D.println(D.VERBOSE, "Media removal allowed");
     }
     this.reply.set(0, 0, 0, 0);
     this.reply.send(this.out);
@@ -178,7 +178,7 @@ public class SCSIcdimage extends SCSI
         this.cdi.do_cdrom(this.cdi.cdSelected);
       }
       
-      D.println(3, "Media eject");
+      D.println(D.VERBOSE, "Media eject");
     }
     this.reply.set(0, 0, 0, 0);
     this.reply.send(this.out);
@@ -188,14 +188,14 @@ public class SCSIcdimage extends SCSI
   void client_test_unit_ready() throws IOException
   {
     if (this.fdd_state == 0) {
-      D.println(3, "media not present");
+      D.println(D.VERBOSE, "media not present");
       this.reply.set(2, 58, 0, 0);
     } else if (this.fdd_state == 1) {
-      D.println(3, "media changed");
+      D.println(D.VERBOSE, "media changed");
       this.reply.set(6, 40, 0, 0);
       this.fdd_state = 2;
     } else {
-      D.println(3, "device ready");
+      D.println(D.VERBOSE, "device ready");
       this.reply.set(0, 0, 0, 0);
     }
     this.reply.send(this.out);
@@ -226,7 +226,7 @@ public class SCSIcdimage extends SCSI
     if (this.fdd_state == 2)
       this.out.write(arrayOfByte, 0, arrayOfByte.length);
     this.out.flush();
-    D.print(3, "client_read_capacity: ");
+    D.println(D.VERBOSE, "client_read_capacity: ");
     D.hexdump(3, arrayOfByte, 8);
   }
   

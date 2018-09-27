@@ -240,11 +240,11 @@ public class MediaAccess
 
     byte[] arrayOfByte = new byte['က'];
     
-    D.println(1, "dllExtract trying " + paramString1);
+    D.println(D.INFORM, "dllExtract trying " + paramString1);
     if (localClassLoader.getResource(paramString1) == null) {
       return -1;
     }
-    D.println(1, "Extracting" + localClassLoader.getResource(paramString1).toExternalForm() + " to " + paramString2);
+    D.println(D.INFORM, "Extracting" + localClassLoader.getResource(paramString1).toExternalForm() + " to " + paramString2);
     
     try
     {
@@ -257,7 +257,7 @@ public class MediaAccess
       localInputStream.close();
       localFileOutputStream.close();
     } catch (IOException localIOException) {
-      D.println(0, "dllExtract: " + localIOException);
+      D.println(D.FATAL, "dllExtract: " + localIOException);
       return -2;
     }
     

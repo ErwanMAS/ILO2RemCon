@@ -81,10 +81,10 @@ public class SCSIcdrom
     super(paramSocket, paramInputStream, paramBufferedOutputStream, paramString, paramInt);
     
 
-    D.println(1, "Media opening " + paramString + "(" + (paramInt | 0x2) + ")");
+    D.println(D.INFORM, "Media opening " + paramString + "(" + (paramInt | 0x2) + ")");
     
     int i = this.media.open(paramString, paramInt);
-    D.println(1, "Media open returns " + i);
+    D.println(D.INFORM, "Media open returns " + i);
     this.retrycount = Integer.valueOf(virtdevs.prop.getProperty("com.hp.ilo2.virtdevs.retrycount", "10")).intValue();
   }
   
@@ -121,7 +121,7 @@ public class SCSIcdrom
       i = paramArrayOfByte[(commands[paramInt] & 0xFFFF)] & 0xFF;
       break;
     default: 
-      D.println(0, "Unknown Size!");
+      D.println(D.FATAL, "Unknown Size!");
     }
     if ((commands[paramInt] & 0x800000) == 8388608)
       i *= 2048;
@@ -135,7 +135,7 @@ public class SCSIcdrom
     
 
     int i = this.media.scsi(arrayOfByte1, 2, 0, this.buffer, arrayOfByte2);
-    D.println(3, "Start/Stop unit = " + i + " " + arrayOfByte2[0] + "/" + arrayOfByte2[1] + "/" + arrayOfByte2[2]);
+    D.println(D.VERBOSE, "Start/Stop unit = " + i + " " + arrayOfByte2[0] + "/" + arrayOfByte2[1] + "/" + arrayOfByte2[2]);
   }
   
 
@@ -220,7 +220,7 @@ public class SCSIcdrom
     
 
     read_command(this.req, 12);
-    D.println(1, "SCSI Request:");
+    D.println(D.INFORM, "SCSI Request:");
     D.hexdump(1, this.req, 12);
     int n;
     if (this.media.dio.filehandle == -1) {
@@ -244,7 +244,7 @@ public class SCSIcdrom
       if (k == 0) {
         read_complete(this.buffer, j);
       }
-      D.println(1, "SCSI dir=" + k + " len=" + j);
+      D.println(D.INFORM, "SCSI dir=" + k + " len=" + j);
       int m = 0;
       do {
         long l1 = System.currentTimeMillis();
@@ -256,13 +256,13 @@ public class SCSIcdrom
         }
         long l2 = System.currentTimeMillis();
         
-        D.println(1, "ret=" + n + " sense=" + D.hex(this.sense[0], 2) + " " + D.hex(this.sense[1], 2) + " " + D.hex(this.sense[2], 2) + " Time=" + (l2 - l1));
+        D.println(D.INFORM, "ret=" + n + " sense=" + D.hex(this.sense[0], 2) + " " + D.hex(this.sense[1], 2) + " " + D.hex(this.sense[2], 2) + " Time=" + (l2 - l1));
         
 
 
 
         if (i == 90) {
-          D.println(1, "media type: " + D.hex(this.buffer[3], 2));
+          D.println(D.INFORM, "media type: " + D.hex(this.buffer[3], 2));
           
           this.reply.setmedia(this.buffer[3]);
         }
@@ -308,7 +308,7 @@ public class SCSIcdrom
       
       j = n;
       if ((j < 0) || (j > 131072)) {
-        D.println(0, "AIEE! len out of bounds: " + j + ", cmd: " + D.hex(i, 2) + "\n");
+        D.println(D.FATAL, "AIEE! len out of bounds: " + j + ", cmd: " + D.hex(i, 2) + "\n");
         
         j = 0;
         this.reply.set(5, 32, 0, 0);
@@ -317,7 +317,7 @@ public class SCSIcdrom
       }
     }
     else {
-      D.println(0, "AIEE! Unhandled command" + D.hex(this.req[0], 2) + "\n");
+      D.println(D.FATAL, "AIEE! Unhandled command" + D.hex(this.req[0], 2) + "\n");
       
       this.reply.set(5, 32, 0, 0);
       j = 0;

@@ -383,7 +383,7 @@ public class CreateImage extends java.awt.Dialog implements java.awt.event.Actio
     } while ((m < 0) && (k++ < this.retrycount));
     
     if (k >= this.retrycount) {
-      D.println(0, "RETRIES FAILED ! ");
+      D.println(D.FATAL, "RETRIES FAILED ! ");
     }
   }
   
@@ -532,7 +532,7 @@ public class CreateImage extends java.awt.Dialog implements java.awt.event.Actio
         localMediaAccess1.close();
         localMediaAccess2.close();
       } catch (java.io.IOException localIOException5) {
-        D.println(0, "Closing: " + localIOException5);
+        D.println(D.FATAL, "Closing: " + localIOException5);
       }
       
       this.progress.updateBar((float)l3 / (float)l2);
