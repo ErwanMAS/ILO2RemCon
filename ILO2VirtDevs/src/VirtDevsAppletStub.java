@@ -13,7 +13,7 @@ import java.util.Iterator;
 public class VirtDevsAppletStub implements AppletStub {
     @Override
     public boolean isActive() {
-        return false;
+        return Main.appletActive;
     }
 
     @Override

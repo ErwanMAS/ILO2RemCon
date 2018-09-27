@@ -23,6 +23,7 @@ public class Main {
     private static String hostname = "";
 
     public static URL baseURL;
+    public static boolean appletActive;
 
     public static void setHostname(String hostname) {
         Main.hostname = hostname;
@@ -244,11 +245,12 @@ public class Main {
 
             JFrame jf = new JFrame();
             Container c = jf.getContentPane();
-            jf.setBounds(0, 0, 1070,880);
+            jf.setBounds(0, 0, 500,300);
             jf.setVisible(true);
             c.add(vd);
 
             vd.init();
+            Main.appletActive = true;
             vd.start();
         } catch (Exception e) {
             e.printStackTrace();
