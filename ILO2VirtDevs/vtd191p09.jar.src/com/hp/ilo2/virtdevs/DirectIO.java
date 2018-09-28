@@ -1,91 +1,75 @@
 package com.hp.ilo2.virtdevs;
 
-import java.io.PrintStream;
-import java.util.Properties;
+public class DirectIO {
+    public static int keydrive = 1;
+
+    static {
+        String dllPathProperty = "cpqma-" + Integer.toHexString(virtdevs.UID) + MediaAccess.dllext;
+
+        String sep = System.getProperty("file.separator");
+        String dllPath = System.getProperty("java.io.tmpdir");
+        String osName = System.getProperty("os.name").toLowerCase();
+
+        if (dllPath == null) {
+            dllPath = osName.startsWith("windows") ? "C:\\TEMP" : "/tmp";
+        }
+
+        if (!dllPath.endsWith(sep)) {
+            dllPath = dllPath + sep;
+        }
+        dllPath = dllPath + dllPathProperty;
 
 
+        dllPathProperty = virtdevs.prop.getProperty("com.hp.ilo2.virtdevs.dll");
+        String keydrive = virtdevs.prop.getProperty("com.hp.ilo2.virtdevs.keydrive", "true");
+        DirectIO.keydrive = Boolean.valueOf(keydrive) ? 1 : 0;
 
-
-
-
-
-
-
-
-
-
-
-
-
-public class DirectIO
-{
-  public int media_type;
-  public int StartCylinder;
-  public int EndCylinder;
-  public int StartHead;
-  public int EndHead;
-  public int Cylinders;
-  public int TracksPerCyl;
-  public int SecPerTrack;
-  public int BytesPerSec;
-  public int media_size;
-  public int filehandle = -1;
-  public int aux_handle = -1;
-  public long bufferaddr;
-  public int wp;
-  
-  public native int open(String paramString);
-  
-  public native int close();
-  
-  public native int read(long paramLong, int paramInt, byte[] paramArrayOfByte);
-  
-  public native int write(long paramLong, int paramInt, byte[] paramArrayOfByte);
-  
-  public native long size();
-  
-  public native int format();
-  
-  public native String[] devices();
-  
-  public native int devtype(String paramString);
-  
-  public native int scsi(byte[] paramArrayOfByte1, int paramInt1, int paramInt2, byte[] paramArrayOfByte2, byte[] paramArrayOfByte3, int paramInt3);
-  
-  public native String sysError(int paramInt);
-  
-  protected void finalize() { if (this.filehandle != -1)
-      close(); }
-  
-  public int misc0;
-  public int PhysicalDevice;
-  public static int keydrive = 1;
-  
-  static {
-    String str1 = "cpqma-" + Integer.toHexString(virtdevs.UID) + MediaAccess.dllext;
-    
-    String str2 = System.getProperty("file.separator");
-    String str3 = System.getProperty("java.io.tmpdir");
-    String str4 = System.getProperty("os.name").toLowerCase();
-    
-    if (str3 == null) {
-      str3 = str4.startsWith("windows") ? "C:\\TEMP" : "/tmp";
+        if (dllPathProperty != null) dllPath = dllPathProperty;
+        System.out.println("Loading " + dllPath);
+        System.load(dllPath);
     }
-    
-    if (!str3.endsWith(str2)) {
-      str3 = str3 + str2;
-    }
-    str3 = str3 + str1;
-    
 
-    str1 = virtdevs.prop.getProperty("com.hp.ilo2.virtdevs.dll");
-    String str5 = virtdevs.prop.getProperty("com.hp.ilo2.virtdevs.keydrive", "true");
-    keydrive = Boolean.valueOf(str5).booleanValue() ? 1 : 0;
-    
-    if (str1 != null) str3 = str1;
-    System.out.println("Loading " + str3);
-    System.load(str3);
-  }
+    public int media_type;
+    public int StartCylinder;
+    public int EndCylinder;
+    public int StartHead;
+    public int EndHead;
+    public int Cylinders;
+    public int TracksPerCyl;
+    public int SecPerTrack;
+    public int BytesPerSec;
+    public int media_size;
+    public int filehandle = -1;
+    public int aux_handle = -1;
+    public long bufferaddr;
+    public int wp;
+    public int misc0;
+    public int PhysicalDevice;
+
+    public native int open(String paramString);
+
+    public native int close();
+
+    public native int read(long paramLong, int paramInt, byte[] paramArrayOfByte);
+
+    public native int write(long paramLong, int paramInt, byte[] paramArrayOfByte);
+
+    public native long size();
+
+    public native int format();
+
+    public native String[] devices();
+
+    public native int devtype(String paramString);
+
+    public native int scsi(byte[] paramArrayOfByte1, int paramInt1, int paramInt2, byte[] paramArrayOfByte2, byte[] paramArrayOfByte3, int paramInt3);
+
+    public native String sysError(int paramInt);
+
+    protected void finalize() {
+        if (this.filehandle != -1)
+            close();
+    }
 }
 
 
