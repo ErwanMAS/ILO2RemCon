@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/ILO2RemCon.iml" filepath="$PROJECT_DIR$/ILO2RemCon.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ILO2VirtDevs/ILO2VirtDevs.iml" filepath="$PROJECT_DIR$/ILO2VirtDevs/ILO2VirtDevs.iml" />
     </modules>
   </component>
 </project>
