@@ -57,9 +57,9 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
     String baseURL;
     String servername;
     String configuration;
-    String dev_floppy;
-    String dev_cdrom;
-    String dev_auto;
+    String appletParamFloppy;
+    String appletParamCdrom;
+    String appletParamDevice;
     java.awt.Frame parent;
     String hostAddress;
     ChiselBox cdch;
@@ -109,54 +109,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
     private Image fdActiveImg;
     private Canvas fdActive;
 
-    public static int getSockFd(Socket paramSocket) {
-        int j = -1;
-        Class localClass = null;
-        Object localObject1 = null;
-        Object localObject2 = null;
-        try {
-            localClass = Socket.class;
-            Field[] arrayOfField = localClass.getDeclaredFields();
-            for (int i = 0; i < arrayOfField.length; i++) {
-                if (arrayOfField[i].getName().equals("impl")) {
-                    localObject1 = arrayOfField[i];
-                    ((AccessibleObject) localObject1).setAccessible(true);
-                    break;
-                }
-            }
-
-
-            SocketImpl localSocketImpl = (SocketImpl) ((Field) localObject1).get(paramSocket);
-            localClass = SocketImpl.class;
-            arrayOfField = localClass.getDeclaredFields();
-            for (int i = 0; i < arrayOfField.length; i++) {
-                if (arrayOfField[i].getName().equals("fd")) {
-                    localObject2 = arrayOfField[i];
-                    ((AccessibleObject) localObject2).setAccessible(true);
-                    break;
-                }
-            }
-
-            FileDescriptor localFileDescriptor = (FileDescriptor) ((Field) localObject2).get(localSocketImpl);
-
-            localClass = FileDescriptor.class;
-            arrayOfField = localClass.getDeclaredFields();
-            for (int i = 0; i < arrayOfField.length; i++) {
-                if (arrayOfField[i].getName().equals("fd")) {
-                    localObject2 = arrayOfField[i];
-                    ((AccessibleObject) localObject2).setAccessible(true);
-                    break;
-                }
-            }
-
-            j = ((Field) localObject2).getInt(localFileDescriptor);
-        } catch (Exception localException) {
-            System.out.println("Ex: " + localException);
-        }
-        return j;
-    }
-
-    public Image getImage(String path) {
+    private Image getImage(String path) {
         ClassLoader localClassLoader = getClass().getClassLoader();
         return getImage(localClassLoader.getResource("com/hp/ilo2/virtdevs/" + path));
     }
@@ -207,9 +160,9 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         }
         this.servername = getParameter("INFO3");
 
-        this.dev_floppy = getParameter("floppy");
-        this.dev_cdrom = getParameter("cdrom");
-        this.dev_auto = getParameter("device");
+        this.appletParamFloppy = getParameter("floppy");
+        this.appletParamCdrom = getParameter("cdrom");
+        this.appletParamDevice = getParameter("device");
         String config = getParameter("config");
         if (config != null) {
             this.configuration = config;
@@ -236,14 +189,14 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
             System.out.println("Exception: " + localInterruptedException);
         }
 
-        if (ui_init(this.baseURL, this.images)) {
-            setconfig(this.configuration);
+        if (uiInit(this.images)) {
+            setConfig(this.configuration);
             if (this.force_config)
-                updateconfig();
+                updateConfig();
             //show();
             setVisible(true);
-            if (this.dev_floppy != null) do_floppy(this.dev_floppy);
-            if (this.dev_cdrom != null) do_cdrom(this.dev_cdrom);
+            if (this.appletParamFloppy != null) doFloppy(this.appletParamFloppy);
+            if (this.appletParamCdrom != null) do_cdrom(this.appletParamCdrom);
         }
     }
 
@@ -300,7 +253,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         }
     }
 
-    public boolean ui_init(String paramString, Image[] images) {
+    private boolean uiInit(Image[] images) {
         int k = 0;
         int m = 0;
 
@@ -313,14 +266,14 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         setBackground(Color.lightGray);
 
 
-        this.statusBar = new Panel(new FlowLayout(0, 5, 5));
+        this.statusBar = new Panel(new FlowLayout(FlowLayout.LEFT, 5, 5));
 
 
-        Panel localPanel = new Panel(new FlowLayout(1, 5, 5));
+        Panel localPanel = new Panel(new FlowLayout(FlowLayout.CENTER, 5, 5));
         if ((this.servername == null) || (this.servername.equals("host is unnamed")))
             this.servername = this.host;
         Label localLabel = new Label("Virtual Media: " + this.servername);
-        localLabel.setFont(new Font("Arial", 1, 12));
+        localLabel.setFont(new Font("Arial", Font.BOLD, 12));
         localPanel.add(localLabel);
         localPanel.setForeground(Color.white);
         localPanel.setBackground(new Color(0, 102, 153));
@@ -350,28 +303,28 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         this.fdDriveList = new Choice();
         this.fdDriveList.add("None");
         int n;
-        if (this.dev_cdrom != null) {
-            n = localMediaAccess.devtype(this.dev_cdrom);
+        if (this.appletParamCdrom != null) {
+            n = localMediaAccess.devtype(this.appletParamCdrom);
             if ((n != 1) && (n != 5)) {
-                new VErrorDialog(this.parent, "Device '" + this.dev_cdrom + "' is not a CD/DVD-ROM");
-                this.dev_cdrom = null;
+                new VErrorDialog(this.parent, "Device '" + this.appletParamCdrom + "' is not a CD/DVD-ROM");
+                this.appletParamCdrom = null;
             }
         }
-        if (this.dev_floppy != null) {
-            n = localMediaAccess.devtype(this.dev_floppy);
+        if (this.appletParamFloppy != null) {
+            n = localMediaAccess.devtype(this.appletParamFloppy);
             if ((n != 1) && (n != 2)) {
-                new VErrorDialog(this.parent, "Device '" + this.dev_floppy + "' is not a floppy/USBkey");
-                this.dev_floppy = null;
+                new VErrorDialog(this.parent, "Device '" + this.appletParamFloppy + "' is not a floppy/USBkey");
+                this.appletParamFloppy = null;
             }
         }
-        if (this.dev_auto != null) {
-            n = localMediaAccess.devtype(this.dev_auto);
+        if (this.appletParamDevice != null) {
+            n = localMediaAccess.devtype(this.appletParamDevice);
             if (n == 5) {
-                this.dev_cdrom = this.dev_auto;
+                this.appletParamCdrom = this.appletParamDevice;
             } else if (n == 2) {
-                this.dev_floppy = this.dev_auto;
+                this.appletParamFloppy = this.appletParamDevice;
             } else {
-                new VErrorDialog(this.parent, "Device '" + this.dev_auto + "' is neither a floppy/USBkey nor a CD/DVD-ROM");
+                new VErrorDialog(this.parent, "Device '" + this.appletParamDevice + "' is neither a floppy/USBkey nor a CD/DVD-ROM");
             }
         }
 
@@ -382,12 +335,12 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
             if (i1 == 5) {
                 this.cdDriveList.add(arrayOfString[j]);
                 m++;
-                if (arrayOfString[j].equals(this.dev_cdrom)) this.dev_cd_device = m;
+                if (arrayOfString[j].equals(this.appletParamCdrom)) this.dev_cd_device = m;
             }
             if (i1 == 2) {
                 this.fdDriveList.add(arrayOfString[j]);
                 k++;
-                if (arrayOfString[j].equals(this.dev_floppy)) this.dev_fd_device = k;
+                if (arrayOfString[j].equals(this.appletParamFloppy)) this.dev_fd_device = k;
             }
         }
         this.cdDriveList.select(this.dev_cd_device);
@@ -514,8 +467,8 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         this.fdChooseFile = new TextField(15);
         this.fdChooseFile.setEditable(false);
         this.fdChooseFile.addActionListener(this);
-        if ((this.dev_fd_device == 0) && (this.dev_floppy != null)) {
-            this.fdChooseFile.setText(this.dev_floppy);
+        if ((this.dev_fd_device == 0) && (this.appletParamFloppy != null)) {
+            this.fdChooseFile.setText(this.appletParamFloppy);
         }
 
         this.readOnlyCheckbox = new Checkbox("Force read-only access", false);
@@ -565,8 +518,8 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
             localGridBagConstraints.anchor = 17;
             localGridBagConstraints.fill = 2;
             this.cdch.cadd(this.cdChooseFile, localGridBagConstraints, 1, i + 1, 1, 1);
-            if ((this.dev_cd_device == 0) && (this.dev_cdrom != null)) {
-                this.cdChooseFile.setText(this.dev_cdrom);
+            if ((this.dev_cd_device == 0) && (this.appletParamCdrom != null)) {
+                this.cdChooseFile.setText(this.appletParamCdrom);
             }
 
             localGridBagConstraints.fill = 0;
@@ -658,7 +611,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         return true;
     }
 
-    public void add(Component component, GridBagConstraints constraints, int gridx, int gridy, int gridwidth, int gridheight) {
+    private void add(Component component, GridBagConstraints constraints, int gridx, int gridy, int gridwidth, int gridheight) {
         constraints.gridx = gridx;
         constraints.gridy = gridy;
         constraints.gridwidth = gridwidth;
@@ -755,7 +708,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
             } else {
                 this.fdSelected = this.fdChooseFile.getText();
             }
-            do_floppy(this.fdSelected);
+            doFloppy(this.fdSelected);
         }
         VFileDialog localVFileDialog;
         String str;
@@ -770,10 +723,10 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
             D.println(D.VERBOSE, "FDIO.actionPerformed:fdSelected = " + this.fdSelected);
 
 
-            if (this.fdThread != null) change_disk(this.fdConnection, this.fdSelected);
+            if (this.fdThread != null) changeDisk(this.fdConnection, this.fdSelected);
         } else if (paramActionEvent.getSource() == this.fdChooseFile) {
             this.fdSelected = this.fdChooseFile.getText();
-            if (this.fdThread != null) change_disk(this.fdConnection, this.fdSelected);
+            if (this.fdThread != null) changeDisk(this.fdConnection, this.fdSelected);
             D.println(D.VERBOSE, "actionPerformed(2):fdSelected = " + this.fdSelected);
         } else if (paramActionEvent.getSource() == this.cdBrowse) {
             D.println(D.VERBOSE, "actionPerformed:cdSelected = " + this.cdSelected);
@@ -785,20 +738,20 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
             D.println(D.VERBOSE, "FDIO.actionPerformed:cdSelected = " + this.cdSelected);
 
 
-            if (this.cdThread != null) change_disk(this.cdConnection, this.cdSelected);
+            if (this.cdThread != null) changeDisk(this.cdConnection, this.cdSelected);
         } else if (paramActionEvent.getSource() == this.cdChooseFile) {
             this.cdSelected = this.fdChooseFile.getText();
             D.println(D.VERBOSE, "actionPerformed(2):cdSelected = " + this.cdSelected);
-            if (this.cdThread != null) change_disk(this.cdConnection, this.cdSelected);
+            if (this.cdThread != null) changeDisk(this.cdConnection, this.cdSelected);
         } else if (paramActionEvent.getSource() == this.fdcrImage) {
             new CreateImage(this.parent);
         }
     }
 
-    public void do_floppy(String paramString) {
+    private void doFloppy(String paramString) {
         if (!this.fdConnected) {
             try {
-                this.fdConnection = new Connection(this.hostAddress, this.fdport, 1, paramString, 0, this.pre, this.key, this);
+                this.fdConnection = new Connection(this.hostAddress, this.fdport, Connection.FLOPPY, paramString, 0, this.pre, this.key, this);
 
             } catch (Exception e) {
 
@@ -808,23 +761,23 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
             this.fdConnection.setWriteProt(this.readOnlyCheckbox.getState());
 
             setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-            int i;
+            int response;
             try {
-                i = this.fdConnection.connect();
-            } catch (Exception localException2) {
+                response = this.fdConnection.connect();
+            } catch (Exception e) {
                 setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
                 D.println(D.FATAL, "Couldn't connect!\n");
-                System.out.println(localException2.getMessage());
+                System.out.println(e.getMessage());
                 new VErrorDialog(this.parent, "Could not connect Virtual Media. iLO Virtual Media service may be disabled.");
                 return;
             }
             setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 
-            if (i == 33) {
+            if (response == 33) {
                 new VErrorDialog(this.parent, "Another virtual media client is connected.");
                 return;
             }
-            if (i == 34) {
+            if (response == 34) {
                 String str;
                 if (rekey("vtdframe.htm")) {
                     str = "Invalid Login.  Try again.";
@@ -834,18 +787,18 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
                 new VErrorDialog(this.parent, str);
                 return;
             }
-            if (i == 35) {
+            if (response == 35) {
                 new VErrorDialog(this.parent, "iLO is not Licenced for Virtual Media.");
                 return;
             }
-            if (i == 37) {
+            if (response == 37) {
                 new VErrorDialog(this.parent, "The Virtual Device is not configured as a floppy drive.");
                 this.configuration = "cdrom";
-                setconfig(this.configuration);
+                setConfig(this.configuration);
                 return;
             }
-            if (i != 0) {
-                new VErrorDialog(this.parent, "Unexpected HELLO response (" + Integer.toHexString(i) + ").  Connection Failed.");
+            if (response != 0) {
+                new VErrorDialog(this.parent, "Unexpected HELLO response (" + Integer.toHexString(response) + ").  Connection Failed.");
 
 
                 return;
@@ -878,7 +831,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
             repaint();
             this.fdConnected = true;
             if (this.configuration.equals("auto")) {
-                setconfig("floppy");
+                setConfig("floppy");
             }
         } else {
             this.fdStartButton.setEnabled(false);
@@ -893,7 +846,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
     public void do_cdrom(String paramString) {
         if (!this.cdConnected) {
             try {
-                this.cdConnection = new Connection(this.hostAddress, this.fdport, 2, paramString, 0, this.pre, this.key, this);
+                this.cdConnection = new Connection(this.hostAddress, this.fdport, Connection.CDROM, paramString, 0, this.pre, this.key, this);
             } catch (Exception localException1) {
                 new VErrorDialog(this.parent, localException1.getMessage());
                 return;
@@ -930,7 +883,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
             if (i == 37) {
                 new VErrorDialog(this.parent, "The Virtual Device is not configured as a CD/DVD-ROM drive.");
                 this.configuration = "floppy";
-                setconfig(this.configuration);
+                setConfig(this.configuration);
                 return;
             }
             if (i != 0) {
@@ -971,7 +924,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
             repaint();
             this.cdConnected = true;
             if (this.configuration.equals("auto")) {
-                setconfig("cdrom");
+                setConfig("cdrom");
             }
         } else {
             try {
@@ -990,7 +943,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         paint(paramGraphics);
     }
 
-    void waitImage(Image paramImage, ImageObserver paramImageObserver) {
+    private void waitImage(Image paramImage, ImageObserver paramImageObserver) {
         long l = System.currentTimeMillis();
         int i;
         do {
@@ -1001,7 +954,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         } while ((System.currentTimeMillis() - l <= 2000L) && (i & ImageDone) != ImageDone);
     }
 
-    void setconfig(String paramString) {
+    private void setConfig(String paramString) {
         if (paramString.equals("floppy")) {
             this.fdStartButton.setEnabled(true);
 
@@ -1084,7 +1037,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         }
     }
 
-    void updateconfig() {
+    private void updateConfig() {
         try {
             URL localURL = new URL(this.baseURL + "modusb.cgi?usb=" + this.configuration);
             java.net.URLConnection localURLConnection = localURL.openConnection();
@@ -1105,7 +1058,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         }
     }
 
-    public boolean rekey(String paramString) {
+    private boolean rekey(String paramString) {
         String str2 = null;
         try {
             D.println(D.VERBOSE, "Downloading new key: " + this.baseURL + paramString);
@@ -1136,15 +1089,15 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
                 this.pre[i] = ((byte) Integer.parseInt(str2.substring(2 * i, 2 * i + 2), 16));
                 this.key[i] = 0;
             }
-        } catch (NumberFormatException localNumberFormatException) {
-            D.println(D.FATAL, "Couldn't parse new key: " + localNumberFormatException);
+        } catch (NumberFormatException e) {
+            D.println(D.FATAL, "Couldn't parse new key: " + e);
             new VErrorDialog(this.parent, "Error parsing new key");
             return false;
         }
         return true;
     }
 
-    void change_disk(Connection paramConnection, String paramString) {
+    private void changeDisk(Connection paramConnection, String paramString) {
         try {
             paramConnection.change_disk(paramString);
         } catch (IOException localIOException) {
@@ -1180,7 +1133,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         this.fdConnected = false;
         this.fdStartButton.setEnabled(true);
         if (this.configuration.equals("auto")) {
-            setconfig(this.configuration);
+            setConfig(this.configuration);
         }
         if (--this.connections == 0) {
             this.fdcrImage.setEnabled(true);
@@ -1217,7 +1170,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         this.cdConnected = false;
         this.cdStartButton.setEnabled(true);
         if (this.configuration.equals("auto")) {
-            setconfig(this.configuration);
+            setConfig(this.configuration);
         }
         if (--this.connections == 0) {
             this.fdcrImage.setEnabled(true);
