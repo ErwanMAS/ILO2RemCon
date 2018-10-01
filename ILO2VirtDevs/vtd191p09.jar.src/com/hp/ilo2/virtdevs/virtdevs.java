@@ -22,13 +22,8 @@ import java.awt.event.ItemEvent;
 import java.awt.event.MouseEvent;
 import java.awt.image.ImageObserver;
 import java.io.BufferedReader;
-import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.AccessibleObject;
-import java.lang.reflect.Field;
-import java.net.Socket;
-import java.net.SocketImpl;
 import java.net.URL;
 import java.util.Properties;
 
@@ -41,12 +36,12 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
     protected boolean stopFlag = false;
     protected boolean running = false;
     Checkbox readOnlyCheckbox;
-    int dev_cd_device = 0;
-    int dev_fd_device = 0;
+    int cdromIndex = 0;
+    int floppyIndex = 0;
     int uniqueFeatures = 0;
-    boolean force_config = false;
+    boolean forceConfig = false;
     boolean thread_init = false;
-    int connections = 0;
+    int connectionCount = 0;
     byte[] pre = new byte[16];
     byte[] key = new byte[16];
     int fdport = 17988;
@@ -62,8 +57,8 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
     String appletParamDevice;
     java.awt.Frame parent;
     String hostAddress;
-    ChiselBox cdch;
-    ChiselBox fdch;
+    ChiselBox cdromChiselBox;
+    ChiselBox floppyChiselBox;
     Choice cdDriveList;
     Button cdStartButton;
     Button cdBrowse;
@@ -166,7 +161,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         String config = getParameter("config");
         if (config != null) {
             this.configuration = config;
-            this.force_config = true;
+            this.forceConfig = true;
         }
 
         String uniqueFeatures = getParameter("UNIQUE_FEATURES");
@@ -191,7 +186,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
 
         if (uiInit(this.images)) {
             setConfig(this.configuration);
-            if (this.force_config)
+            if (this.forceConfig)
                 updateConfig();
             //show();
             setVisible(true);
@@ -254,9 +249,6 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
     }
 
     private boolean uiInit(Image[] images) {
-        int k = 0;
-        int m = 0;
-
         MediaAccess localMediaAccess = new MediaAccess();
 
         GridBagLayout localGridBagLayout = new GridBagLayout();
@@ -305,48 +297,54 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         int n;
         if (this.appletParamCdrom != null) {
             n = localMediaAccess.devtype(this.appletParamCdrom);
-            if ((n != 1) && (n != 5)) {
+            if ((n != BaseMediaAccess.NoRootDir) && (n != BaseMediaAccess.CDROM)) {
                 new VErrorDialog(this.parent, "Device '" + this.appletParamCdrom + "' is not a CD/DVD-ROM");
                 this.appletParamCdrom = null;
             }
         }
         if (this.appletParamFloppy != null) {
             n = localMediaAccess.devtype(this.appletParamFloppy);
-            if ((n != 1) && (n != 2)) {
+            if ((n != BaseMediaAccess.NoRootDir) && (n != BaseMediaAccess.Removable)) {
                 new VErrorDialog(this.parent, "Device '" + this.appletParamFloppy + "' is not a floppy/USBkey");
                 this.appletParamFloppy = null;
             }
         }
         if (this.appletParamDevice != null) {
             n = localMediaAccess.devtype(this.appletParamDevice);
-            if (n == 5) {
+            if (n == BaseMediaAccess.CDROM) {
                 this.appletParamCdrom = this.appletParamDevice;
-            } else if (n == 2) {
+            } else if (n == BaseMediaAccess.Removable) {
                 this.appletParamFloppy = this.appletParamDevice;
             } else {
                 new VErrorDialog(this.parent, "Device '" + this.appletParamDevice + "' is neither a floppy/USBkey nor a CD/DVD-ROM");
             }
         }
 
-        String[] arrayOfString = localMediaAccess.devices();
-        for (int j = 0; (arrayOfString != null) && (j < arrayOfString.length); j++) {
-            D.println(D.VERBOSE, "init:deviceName = " + arrayOfString[j]);
-            int i1 = localMediaAccess.devtype(arrayOfString[j]);
-            if (i1 == 5) {
-                this.cdDriveList.add(arrayOfString[j]);
-                m++;
-                if (arrayOfString[j].equals(this.appletParamCdrom)) this.dev_cd_device = m;
-            }
-            if (i1 == 2) {
-                this.fdDriveList.add(arrayOfString[j]);
-                k++;
-                if (arrayOfString[j].equals(this.appletParamFloppy)) this.dev_fd_device = k;
+
+        int fdDeviceIndex = 0;
+        int cdDeviceIndex = 0;
+        String[] deviceNames = localMediaAccess.devices();
+        if (deviceNames != null) {
+            for (String deviceName : deviceNames) {
+                D.println(D.VERBOSE, "init:deviceName = " + deviceName);
+                int devtype = localMediaAccess.devtype(deviceName);
+                if (devtype == BaseMediaAccess.CDROM) {
+                    this.cdDriveList.add(deviceName);
+                    cdDeviceIndex++;
+                    if (deviceName.equals(this.appletParamCdrom)) this.cdromIndex = cdDeviceIndex;
+                }
+                if (devtype == BaseMediaAccess.Removable) {
+                    this.fdDriveList.add(deviceName);
+                    fdDeviceIndex++;
+                    if (deviceName.equals(this.appletParamFloppy)) this.floppyIndex = fdDeviceIndex;
+                }
             }
         }
-        this.cdDriveList.select(this.dev_cd_device);
+
+        this.cdDriveList.select(this.cdromIndex);
         this.cdDriveList.addItemListener(this);
 
-        this.fdDriveList.select(this.dev_fd_device);
+        this.fdDriveList.select(this.floppyIndex);
         this.fdDriveList.addItemListener(this);
 
 
@@ -467,7 +465,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         this.fdChooseFile = new TextField(15);
         this.fdChooseFile.setEditable(false);
         this.fdChooseFile.addActionListener(this);
-        if ((this.dev_fd_device == 0) && (this.appletParamFloppy != null)) {
+        if ((this.floppyIndex == 0) && (this.appletParamFloppy != null)) {
             this.fdChooseFile.setText(this.appletParamFloppy);
         }
 
@@ -481,92 +479,92 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         add(localPanel, localGridBagConstraints, 0, 0, 4, 1);
 
 
-        this.cdch = new ChiselBox("Virtual CD/DVD-ROM");
-        this.cdch.content.setLayout(new GridBagLayout());
+        this.cdromChiselBox = new ChiselBox("Virtual CD/DVD-ROM");
+        this.cdromChiselBox.content.setLayout(new GridBagLayout());
         localGridBagConstraints.anchor = 18;
         localGridBagConstraints.fill = 1;
         localGridBagConstraints.weightx = 100.0D;
         localGridBagConstraints.weighty = 60.0D;
-        add(this.cdch, localGridBagConstraints, 0, 3, 3, 1);
+        add(this.cdromChiselBox, localGridBagConstraints, 0, 3, 3, 1);
 
         int i = 0;
         localGridBagConstraints.fill = 2;
         localGridBagConstraints.anchor = 17;
         if (cdimg_support) {
-            this.cdch.cadd(this.cdCboxDev, localGridBagConstraints, 0, i, 1, 1);
+            this.cdromChiselBox.cadd(this.cdCboxDev, localGridBagConstraints, 0, i, 1, 1);
         } else {
-            this.cdch.cadd(this.cdLabel, localGridBagConstraints, 0, i, 1, 1);
+            this.cdromChiselBox.cadd(this.cdLabel, localGridBagConstraints, 0, i, 1, 1);
         }
 
         localGridBagConstraints.fill = 2;
         localGridBagConstraints.anchor = 17;
-        this.cdch.cadd(this.cdDriveList, localGridBagConstraints, 1, i, 1, 1);
+        this.cdromChiselBox.cadd(this.cdDriveList, localGridBagConstraints, 1, i, 1, 1);
 
         localGridBagConstraints.fill = 2;
         localGridBagConstraints.anchor = 17;
-        this.cdch.cadd(this.cdStartButton, localGridBagConstraints, 2, i, 1, 1);
+        this.cdromChiselBox.cadd(this.cdStartButton, localGridBagConstraints, 2, i, 1, 1);
 
         localGridBagConstraints.fill = 0;
         localGridBagConstraints.anchor = 13;
-        this.cdch.cadd(this.cdIcons, localGridBagConstraints, 3, i, 1, 2);
+        this.cdromChiselBox.cadd(this.cdIcons, localGridBagConstraints, 3, i, 1, 2);
 
         if (cdimg_support) {
             localGridBagConstraints.fill = 2;
             localGridBagConstraints.anchor = 17;
-            this.cdch.cadd(this.cdCboxImg, localGridBagConstraints, 0, i + 1, 1, 1);
+            this.cdromChiselBox.cadd(this.cdCboxImg, localGridBagConstraints, 0, i + 1, 1, 1);
 
             localGridBagConstraints.anchor = 17;
             localGridBagConstraints.fill = 2;
-            this.cdch.cadd(this.cdChooseFile, localGridBagConstraints, 1, i + 1, 1, 1);
-            if ((this.dev_cd_device == 0) && (this.appletParamCdrom != null)) {
+            this.cdromChiselBox.cadd(this.cdChooseFile, localGridBagConstraints, 1, i + 1, 1, 1);
+            if ((this.cdromIndex == 0) && (this.appletParamCdrom != null)) {
                 this.cdChooseFile.setText(this.appletParamCdrom);
             }
 
             localGridBagConstraints.fill = 0;
             localGridBagConstraints.anchor = 17;
-            this.cdch.cadd(this.cdBrowse, localGridBagConstraints, 2, i + 1, 1, 1);
+            this.cdromChiselBox.cadd(this.cdBrowse, localGridBagConstraints, 2, i + 1, 1, 1);
         }
 
 
-        this.fdch = new ChiselBox("Virtual Floppy/USBKey");
-        this.fdch.content.setLayout(new GridBagLayout());
+        this.floppyChiselBox = new ChiselBox("Virtual Floppy/USBKey");
+        this.floppyChiselBox.content.setLayout(new GridBagLayout());
         localGridBagConstraints.anchor = 18;
         localGridBagConstraints.fill = 1;
         localGridBagConstraints.weightx = 100.0D;
         localGridBagConstraints.weighty = 60.0D;
-        add(this.fdch, localGridBagConstraints, 0, 2, 3, 1);
+        add(this.floppyChiselBox, localGridBagConstraints, 0, 2, 3, 1);
 
         i = 0;
         localGridBagConstraints.fill = 2;
         localGridBagConstraints.anchor = 17;
-        this.fdch.cadd(this.fdCboxDev, localGridBagConstraints, 0, i, 1, 1);
+        this.floppyChiselBox.cadd(this.fdCboxDev, localGridBagConstraints, 0, i, 1, 1);
 
         localGridBagConstraints.anchor = 17;
         localGridBagConstraints.fill = 2;
-        this.fdch.cadd(this.fdDriveList, localGridBagConstraints, 1, i, 1, 1);
+        this.floppyChiselBox.cadd(this.fdDriveList, localGridBagConstraints, 1, i, 1, 1);
 
         localGridBagConstraints.fill = 0;
         localGridBagConstraints.anchor = 17;
-        this.fdch.cadd(this.fdStartButton, localGridBagConstraints, 2, i, 1, 1);
+        this.floppyChiselBox.cadd(this.fdStartButton, localGridBagConstraints, 2, i, 1, 1);
 
         localGridBagConstraints.fill = 0;
         localGridBagConstraints.anchor = 13;
-        this.fdch.cadd(this.fdIcons, localGridBagConstraints, 3, i, 1, 2);
+        this.floppyChiselBox.cadd(this.fdIcons, localGridBagConstraints, 3, i, 1, 2);
 
         localGridBagConstraints.fill = 2;
         localGridBagConstraints.anchor = 17;
-        this.fdch.cadd(this.fdCboxImg, localGridBagConstraints, 0, i + 1, 1, 1);
+        this.floppyChiselBox.cadd(this.fdCboxImg, localGridBagConstraints, 0, i + 1, 1, 1);
 
         localGridBagConstraints.anchor = 17;
         localGridBagConstraints.fill = 2;
-        this.fdch.cadd(this.fdChooseFile, localGridBagConstraints, 1, i + 1, 1, 1);
+        this.floppyChiselBox.cadd(this.fdChooseFile, localGridBagConstraints, 1, i + 1, 1, 1);
 
         localGridBagConstraints.fill = 0;
         localGridBagConstraints.anchor = 17;
-        this.fdch.cadd(this.fdBrowse, localGridBagConstraints, 2, i + 1, 1, 1);
+        this.floppyChiselBox.cadd(this.fdBrowse, localGridBagConstraints, 2, i + 1, 1, 1);
 
         localGridBagConstraints.anchor = 17;
-        this.fdch.cadd(this.readOnlyCheckbox, localGridBagConstraints, 0, i + 2, 1, 1);
+        this.floppyChiselBox.cadd(this.readOnlyCheckbox, localGridBagConstraints, 0, i + 2, 1, 1);
 
 
         i = 4;
@@ -606,7 +604,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         this.statusBar.addMouseListener(local5);
 
         if ((this.uniqueFeatures & UNQF_HIDEFLP) == UNQF_HIDEFLP) {
-            this.fdch.setVisible(false);
+            this.floppyChiselBox.setVisible(false);
         }
         return true;
     }
@@ -817,7 +815,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
             this.fdStartButton.setLabel("Disconnect");
 
             this.fdcrImage.setEnabled(false);
-            this.connections += 1;
+            this.connectionCount += 1;
             this.fdCboxDev.setEnabled(false);
             this.fdDriveList.setEnabled(false);
             this.fdCboxImg.setEnabled(false);
@@ -898,7 +896,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
 
 
             this.fdcrImage.setEnabled(false);
-            this.connections += 1;
+            this.connectionCount += 1;
             this.cdDriveList.setEnabled(false);
             this.cdStartButton.setLabel("Disconnect");
             this.statLabel.setText("Virtual Media Connected");
@@ -967,11 +965,11 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
             }
             this.fdDriveList.setEnabled(false);
 
-            this.fdch.setEnabled(true);
+            this.floppyChiselBox.setEnabled(true);
             this.readOnlyCheckbox.setEnabled(false);
             this.cdStartButton.setEnabled(false);
             this.cdDriveList.setEnabled(false);
-            this.cdch.setEnabled(false);
+            this.cdromChiselBox.setEnabled(false);
             if (cdimg_support) {
                 this.cdChooseFile.setEditable(false);
                 this.cdBrowse.setEnabled(false);
@@ -986,7 +984,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
             this.fdChooseFile.setEditable(false);
             this.fdBrowse.setEnabled(false);
             this.readOnlyCheckbox.setEnabled(false);
-            this.fdch.setEnabled(false);
+            this.floppyChiselBox.setEnabled(false);
             this.cdStartButton.setEnabled(true);
 
             if (this.cdCboxChecked == 1) {
@@ -997,7 +995,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
                 this.cdCboxImg.setEnabled(false);
             }
             this.cdDriveList.setEnabled(false);
-            this.cdch.setEnabled(true);
+            this.cdromChiselBox.setEnabled(true);
             if (!cdimg_support) {
             }
         } else {
@@ -1006,9 +1004,9 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
             this.fdCboxImg.setEnabled(true);
             this.fdChooseFile.setEditable(false);
             this.readOnlyCheckbox.setEnabled(true);
-            this.fdch.setEnabled(true);
+            this.floppyChiselBox.setEnabled(true);
             this.cdStartButton.setEnabled(true);
-            this.cdch.setEnabled(true);
+            this.cdromChiselBox.setEnabled(true);
             if (cdimg_support) {
                 this.cdCboxDev.setEnabled(true);
                 this.cdCboxImg.setEnabled(true);
@@ -1135,7 +1133,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         if (this.configuration.equals("auto")) {
             setConfig(this.configuration);
         }
-        if (--this.connections == 0) {
+        if (--this.connectionCount == 0) {
             this.fdcrImage.setEnabled(true);
         }
     }
@@ -1172,7 +1170,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         if (this.configuration.equals("auto")) {
             setConfig(this.configuration);
         }
-        if (--this.connections == 0) {
+        if (--this.connectionCount == 0) {
             this.fdcrImage.setEnabled(true);
         }
     }
