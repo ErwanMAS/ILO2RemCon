@@ -124,8 +124,8 @@ public class Connection implements Runnable, java.awt.event.ActionListener {
         this.out = null;
     }
 
-    public void setWriteProt(boolean paramBoolean) {
-        this.writeProtect = paramBoolean;
+    public void setWriteProtect(boolean writeProtect) {
+        this.writeProtect = writeProtect;
         if (this.scsi != null) {
             this.scsi.setWriteProtect(this.writeProtect);
         }

@@ -675,7 +675,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         if (paramItemEvent.getSource() == this.readOnlyCheckbox) {
             D.println(D.VERBOSE, "Read only = " + this.readOnlyCheckbox.getState());
             if (this.fdConnection != null) {
-                this.fdConnection.setWriteProt(this.readOnlyCheckbox.getState());
+                this.fdConnection.setWriteProtect(this.readOnlyCheckbox.getState());
             }
         }
     }
@@ -756,7 +756,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
                 new VErrorDialog(this.parent, e.getMessage());
                 return;
             }
-            this.fdConnection.setWriteProt(this.readOnlyCheckbox.getState());
+            this.fdConnection.setWriteProtect(this.readOnlyCheckbox.getState());
 
             setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
             int response;
@@ -849,7 +849,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
                 new VErrorDialog(this.parent, localException1.getMessage());
                 return;
             }
-            this.cdConnection.setWriteProt(true);
+            this.cdConnection.setWriteProtect(true);
             int i;
             try {
                 i = this.cdConnection.connect();
