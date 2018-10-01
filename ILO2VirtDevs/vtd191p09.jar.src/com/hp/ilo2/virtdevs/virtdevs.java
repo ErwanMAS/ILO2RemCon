@@ -34,16 +34,16 @@ import java.util.Properties;
 
 public class virtdevs extends Applet implements java.awt.event.ActionListener, java.awt.event.ItemListener, Runnable {
     public static final int UNQF_HIDEFLP = 1;
-    static final int ImageDone = 39;
+    static final int ImageDone = Component.ALLBITS | Component.PROPERTIES | Component.HEIGHT | Component.WIDTH;
     public static boolean cdimg_support = true;
     public static int UID;
     public static Properties prop;
-    public Checkbox roCbox;
     protected boolean stopFlag = false;
     protected boolean running = false;
+    Checkbox readOnlyCheckbox;
     int dev_cd_device = 0;
     int dev_fd_device = 0;
-    int unq_feature = 0;
+    int uniqueFeatures = 0;
     boolean force_config = false;
     boolean thread_init = false;
     int connections = 0;
@@ -52,9 +52,9 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
     int fdport = 17988;
     int fdCboxChecked = 0;
     int cdCboxChecked = 0;
-    Image[] img;
+    Image[] images;
     String host;
-    String base;
+    String baseURL;
     String servername;
     String configuration;
     String dev_floppy;
@@ -156,37 +156,38 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         return j;
     }
 
-    public Image getImg(String paramString) {
+    public Image getImage(String path) {
         ClassLoader localClassLoader = getClass().getClassLoader();
-        return getImage(localClassLoader.getResource("com/hp/ilo2/virtdevs/" + paramString));
+        return getImage(localClassLoader.getResource("com/hp/ilo2/virtdevs/" + path));
     }
 
     public void init() {
         if (UID == 0) UID = hashCode();
-        this.img = new Image[8];
-        this.img[0] = getImg("cdstart.gif");
-        this.img[1] = getImg("cdstop.gif");
-        this.img[2] = getImg("active.gif");
-        this.img[3] = getImg("inactive.gif");
-        this.img[4] = null;
-        this.img[5] = getImg("fdstart.gif");
-        this.img[6] = getImg("fdstop.gif");
-        this.img[7] = getImg("fistart.gif");
+
+        this.images = new Image[8];
+        this.images[0] = getImage("cdstart.gif");
+        this.images[1] = getImage("cdstop.gif");
+        this.images[2] = getImage("active.gif");
+        this.images[3] = getImage("inactive.gif");
+        this.images[4] = null;
+        this.images[5] = getImage("fdstart.gif");
+        this.images[6] = getImage("fdstop.gif");
+        this.images[7] = getImage("fistart.gif");
 
         URL localURL = getDocumentBase();
-        this.host = getParameter("hostAddress");
-        if (this.host == null)
-            this.host = localURL.getHost();
-        this.base = (localURL.getProtocol() + "://" + localURL.getHost());
+        this.hostAddress = getParameter("hostAddress");
+        if (this.hostAddress == null)
+            this.hostAddress = localURL.getHost();
+        this.baseURL = (localURL.getProtocol() + "://" + localURL.getHost());
         if (localURL.getPort() != -1)
-            this.base = (this.base + ":" + localURL.getPort());
-        this.base += "/";
+            this.baseURL = (this.baseURL + ":" + localURL.getPort());
+        this.baseURL += "/";
 
-        String str1 = getParameter("INFO0");
-        if (str1 != null) {
+        String info0Pre = getParameter("INFO0");
+        if (info0Pre != null) {
             try {
                 for (int i = 0; i < 16; i++) {
-                    this.pre[i] = ((byte) Integer.parseInt(str1.substring(2 * i, 2 * i + 2), 16));
+                    this.pre[i] = ((byte) Integer.parseInt(info0Pre.substring(2 * i, 2 * i + 2), 16));
 
                     this.key[i] = 0;
                 }
@@ -209,18 +210,18 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         this.dev_floppy = getParameter("floppy");
         this.dev_cdrom = getParameter("cdrom");
         this.dev_auto = getParameter("device");
-        String str2 = getParameter("config");
-        if (str2 != null) {
-            this.configuration = str2;
+        String config = getParameter("config");
+        if (config != null) {
+            this.configuration = config;
             this.force_config = true;
         }
 
-        String str3 = getParameter("UNIQUE_FEATURES");
+        String uniqueFeatures = getParameter("UNIQUE_FEATURES");
         try {
-            if (str3 != null)
-                this.unq_feature = Integer.parseInt(str3);
-        } catch (NumberFormatException localNumberFormatException3) {
-            D.println(D.FATAL, "Couldn't parse UNIQUE_FEATURES: " + localNumberFormatException3);
+            if (uniqueFeatures != null)
+                this.uniqueFeatures = Integer.parseInt(uniqueFeatures);
+        } catch (NumberFormatException e) {
+            D.println(D.FATAL, "Couldn't parse UNIQUE_FEATURES: " + e);
         }
 
         this.parent = new java.awt.Frame();
@@ -234,8 +235,8 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         } catch (InterruptedException localInterruptedException) {
             System.out.println("Exception: " + localInterruptedException);
         }
-        this.hostAddress = this.host;
-        if (ui_init(this.base, this.img)) {
+
+        if (ui_init(this.baseURL, this.images)) {
             setconfig(this.configuration);
             if (this.force_config)
                 updateconfig();
@@ -252,16 +253,16 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
             try {
                 this.fdConnection.close();
                 this.fdThread = null;
-            } catch (IOException localIOException1) {
-                D.println(D.VERBOSE, localIOException1.toString());
+            } catch (IOException e) {
+                D.println(D.VERBOSE, e.toString());
             }
         }
         if (this.cdConnection != null) {
             try {
                 this.cdConnection.close();
                 this.cdThread = null;
-            } catch (IOException localIOException2) {
-                D.println(D.VERBOSE, localIOException2.toString());
+            } catch (IOException e) {
+                D.println(D.VERBOSE, e.toString());
             }
         }
     }
@@ -271,8 +272,8 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         localThread.start();
         try {
             Thread.sleep(1000L);
-        } catch (InterruptedException localInterruptedException) {
-            System.out.println("Exception: " + localInterruptedException);
+        } catch (InterruptedException e) {
+            System.out.println("Exception: " + e);
         }
     }
 
@@ -283,11 +284,11 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
                 prop.load(new java.io.FileInputStream(System.getProperty("user.home") + System.getProperty("file.separator") + ".java" + System.getProperty("file.separator") + "hp.properties"));
 
 
-            } catch (Exception localException) {
+            } catch (Exception e) {
 
-                System.out.println("Exception: " + localException);
+                System.out.println("Exception: " + e);
             }
-            cdimg_support = Boolean.valueOf(prop.getProperty("com.hp.ilo2.virtdevs.cdimage", "true")).booleanValue();
+            cdimg_support = Boolean.valueOf(prop.getProperty("com.hp.ilo2.virtdevs.cdimage", "true"));
 
 
             MediaAccess localMediaAccess = new MediaAccess();
@@ -299,7 +300,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         }
     }
 
-    public boolean ui_init(String paramString, Image[] paramArrayOfImage) {
+    public boolean ui_init(String paramString, Image[] images) {
         int k = 0;
         int m = 0;
 
@@ -394,7 +395,6 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
 
         this.fdDriveList.select(this.dev_fd_device);
         this.fdDriveList.addItemListener(this);
-        localMediaAccess = null;
 
 
         this.cdStartButton = new Button("");
@@ -405,19 +405,19 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         this.cdBrowse.setEnabled(false);
         this.cdBrowse.addActionListener(this);
 
-        this.cdIcons = new Panel(new FlowLayout(0, 5, 5));
+        this.cdIcons = new Panel(new FlowLayout(FlowLayout.LEFT, 5, 5));
 
-        this.greenDot = paramArrayOfImage[2];
+        this.greenDot = images[2];
         prepareImage(this.greenDot, this.cdIcons);
-        this.grayDot = paramArrayOfImage[3];
+        this.grayDot = images[3];
         prepareImage(this.grayDot, this.cdIcons);
 
 
-        this.cdStartImage = paramArrayOfImage[0];
+        this.cdStartImage = images[0];
         prepareImage(this.cdStartImage, this.cdIcons);
-        this.cdStopImage = paramArrayOfImage[1];
+        this.cdStopImage = images[1];
         prepareImage(this.cdStopImage, this.cdIcons);
-        this.ciStartImage = paramArrayOfImage[7];
+        this.ciStartImage = images[7];
         prepareImage(this.ciStartImage, this.cdIcons);
         this.currentImage = this.cdStopImage;
         this.cdActiveImg = this.grayDot;
@@ -470,13 +470,13 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         this.fdBrowse.setEnabled(false);
         this.fdStartButton.addActionListener(this);
 
-        this.fdIcons = new Panel(new FlowLayout(0, 5, 5));
+        this.fdIcons = new Panel(new FlowLayout(FlowLayout.LEFT, 5, 5));
 
-        this.fdStartImage = paramArrayOfImage[5];
+        this.fdStartImage = images[5];
         prepareImage(this.fdStartImage, this.fdIcons);
-        this.fdStopImage = paramArrayOfImage[6];
+        this.fdStopImage = images[6];
         prepareImage(this.fdStopImage, this.fdIcons);
-        this.fiStartImage = paramArrayOfImage[7];
+        this.fiStartImage = images[7];
         prepareImage(this.fiStartImage, this.fdIcons);
         this.floppyImage = this.fdStopImage;
         this.fdActiveImg = this.grayDot;
@@ -518,8 +518,8 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
             this.fdChooseFile.setText(this.dev_floppy);
         }
 
-        this.roCbox = new Checkbox("Force read-only access", false);
-        this.roCbox.addItemListener(this);
+        this.readOnlyCheckbox = new Checkbox("Force read-only access", false);
+        this.readOnlyCheckbox.addItemListener(this);
 
         localGridBagConstraints.anchor = 11;
         localGridBagConstraints.fill = 2;
@@ -613,12 +613,12 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         this.fdch.cadd(this.fdBrowse, localGridBagConstraints, 2, i + 1, 1, 1);
 
         localGridBagConstraints.anchor = 17;
-        this.fdch.cadd(this.roCbox, localGridBagConstraints, 0, i + 2, 1, 1);
+        this.fdch.cadd(this.readOnlyCheckbox, localGridBagConstraints, 0, i + 2, 1, 1);
 
 
         i = 4;
         this.statLabel = new Label("Select a local drive from the list");
-        this.statLabel.setFont(new Font("Arial", 1, 12));
+        this.statLabel.setFont(new Font("Arial", Font.BOLD, 12));
         this.statusBar.add(this.statLabel);
 
         localGridBagConstraints.anchor = 17;
@@ -652,18 +652,18 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         localLabel.addMouseListener(local5);
         this.statusBar.addMouseListener(local5);
 
-        if ((this.unq_feature & 0x1) == 1) {
-            this.fdch.hide();
+        if ((this.uniqueFeatures & UNQF_HIDEFLP) == UNQF_HIDEFLP) {
+            this.fdch.setVisible(false);
         }
         return true;
     }
 
-    public void add(Component paramComponent, GridBagConstraints paramGridBagConstraints, int paramInt1, int paramInt2, int paramInt3, int paramInt4) {
-        paramGridBagConstraints.gridx = paramInt1;
-        paramGridBagConstraints.gridy = paramInt2;
-        paramGridBagConstraints.gridwidth = paramInt3;
-        paramGridBagConstraints.gridheight = paramInt4;
-        add(paramComponent, paramGridBagConstraints);
+    public void add(Component component, GridBagConstraints constraints, int gridx, int gridy, int gridwidth, int gridheight) {
+        constraints.gridx = gridx;
+        constraints.gridy = gridy;
+        constraints.gridwidth = gridwidth;
+        constraints.gridheight = gridheight;
+        add(component, constraints);
     }
 
     public void itemStateChanged(ItemEvent paramItemEvent) {
@@ -721,10 +721,10 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         }
 
 
-        if (paramItemEvent.getSource() == this.roCbox) {
-            D.println(D.VERBOSE, "Read only = " + this.roCbox.getState());
+        if (paramItemEvent.getSource() == this.readOnlyCheckbox) {
+            D.println(D.VERBOSE, "Read only = " + this.readOnlyCheckbox.getState());
             if (this.fdConnection != null) {
-                this.fdConnection.setWriteProt(this.roCbox.getState());
+                this.fdConnection.setWriteProt(this.readOnlyCheckbox.getState());
             }
         }
     }
@@ -800,25 +800,25 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
             try {
                 this.fdConnection = new Connection(this.hostAddress, this.fdport, 1, paramString, 0, this.pre, this.key, this);
 
-            } catch (Exception localException1) {
+            } catch (Exception e) {
 
-                new VErrorDialog(this.parent, localException1.getMessage());
+                new VErrorDialog(this.parent, e.getMessage());
                 return;
             }
-            this.fdConnection.setWriteProt(this.roCbox.getState());
+            this.fdConnection.setWriteProt(this.readOnlyCheckbox.getState());
 
-            setCursor(Cursor.getPredefinedCursor(3));
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
             int i;
             try {
                 i = this.fdConnection.connect();
             } catch (Exception localException2) {
-                setCursor(Cursor.getPredefinedCursor(0));
+                setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
                 D.println(D.FATAL, "Couldn't connect!\n");
                 System.out.println(localException2.getMessage());
                 new VErrorDialog(this.parent, "Could not connect Virtual Media. iLO Virtual Media service may be disabled.");
                 return;
             }
-            setCursor(Cursor.getPredefinedCursor(0));
+            setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 
             if (i == 33) {
                 new VErrorDialog(this.parent, "Another virtual media client is connected.");
@@ -995,11 +995,10 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
         int i;
         do {
             i = checkImage(paramImage, paramImageObserver);
-            if ((i & 0xC0) != 0)
+            if ((i & (Component.ERROR | Component.ABORT)) != 0)
                 break;
             Thread.yield();
-        } while ((System.currentTimeMillis() - l <= 2000L) &&
-                ((i & 0x27) != 39));
+        } while ((System.currentTimeMillis() - l <= 2000L) && (i & ImageDone) != ImageDone);
     }
 
     void setconfig(String paramString) {
@@ -1016,7 +1015,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
             this.fdDriveList.setEnabled(false);
 
             this.fdch.setEnabled(true);
-            this.roCbox.setEnabled(false);
+            this.readOnlyCheckbox.setEnabled(false);
             this.cdStartButton.setEnabled(false);
             this.cdDriveList.setEnabled(false);
             this.cdch.setEnabled(false);
@@ -1033,7 +1032,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
             this.fdDriveList.setEnabled(false);
             this.fdChooseFile.setEditable(false);
             this.fdBrowse.setEnabled(false);
-            this.roCbox.setEnabled(false);
+            this.readOnlyCheckbox.setEnabled(false);
             this.fdch.setEnabled(false);
             this.cdStartButton.setEnabled(true);
 
@@ -1053,7 +1052,7 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
             this.fdCboxDev.setEnabled(true);
             this.fdCboxImg.setEnabled(true);
             this.fdChooseFile.setEditable(false);
-            this.roCbox.setEnabled(true);
+            this.readOnlyCheckbox.setEnabled(true);
             this.fdch.setEnabled(true);
             this.cdStartButton.setEnabled(true);
             this.cdch.setEnabled(true);
@@ -1087,30 +1086,30 @@ public class virtdevs extends Applet implements java.awt.event.ActionListener, j
 
     void updateconfig() {
         try {
-            URL localURL = new URL(this.base + "modusb.cgi?usb=" + this.configuration);
+            URL localURL = new URL(this.baseURL + "modusb.cgi?usb=" + this.configuration);
             java.net.URLConnection localURLConnection = localURL.openConnection();
-            BufferedReader localBufferedReader = new BufferedReader(new InputStreamReader(localURL.openStream()));
+            BufferedReader br = new BufferedReader(new InputStreamReader(localURL.openStream()));
 
 
             String str;
 
 
-            while ((str = localBufferedReader.readLine()) != null) {
+            while ((str = br.readLine()) != null) {
                 D.println(D.VERBOSE, "updcfg: " + str);
             }
-            localBufferedReader.close();
-        } catch (Exception localException) {
-            new VErrorDialog(this.parent, "Error updating device configuraiton (" + localException + ")");
+            br.close();
+        } catch (Exception e) {
+            new VErrorDialog(this.parent, "Error updating device configuraiton (" + e + ")");
 
-            localException.printStackTrace();
+            e.printStackTrace();
         }
     }
 
     public boolean rekey(String paramString) {
         String str2 = null;
         try {
-            D.println(D.VERBOSE, "Downloading new key: " + this.base + paramString);
-            URL localURL = new URL(this.base + paramString);
+            D.println(D.VERBOSE, "Downloading new key: " + this.baseURL + paramString);
+            URL localURL = new URL(this.baseURL + paramString);
             BufferedReader localBufferedReader = new BufferedReader(new InputStreamReader(localURL.openStream()));
 
             String str1;
