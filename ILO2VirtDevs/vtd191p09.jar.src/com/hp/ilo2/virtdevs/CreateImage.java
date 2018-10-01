@@ -1,6 +1,6 @@
 package com.hp.ilo2.virtdevs;
 
-import java.awt.Component;
+import java.awt.*;
 
 public class CreateImage extends java.awt.Dialog implements java.awt.event.ActionListener, java.awt.event.WindowListener, java.awt.event.TextListener, java.awt.event.ItemListener, Runnable {
   java.awt.Choice fdDrive;
@@ -110,7 +110,7 @@ public class CreateImage extends java.awt.Dialog implements java.awt.event.Actio
     this.dimg.addActionListener(this);
     
     this.statLabel = new java.awt.Label("                                                                                 ");
-    this.statLabel.setFont(new java.awt.Font("Arial", 1, 12));
+    this.statLabel.setFont(new java.awt.Font("Arial", Font.BOLD, 12));
     localPanel.add(this.statLabel);
     
     this.browse = new java.awt.Button("Browse");
@@ -130,7 +130,7 @@ public class CreateImage extends java.awt.Dialog implements java.awt.event.Actio
     localGridBagConstraints.weighty = 0.0D;
     add(localPanel, localGridBagConstraints, 0, 1, 1, 1);
     
-    show();
+    setVisible(true);
     
     if (j != 0) {
       this.dimg.setLabel("Disk >> Image");
