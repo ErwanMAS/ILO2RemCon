@@ -1,5 +1,7 @@
 package com.hp.ilo2.virtdevs;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.net.Socket;
 import javax.swing.Timer;
@@ -98,26 +100,33 @@ public class Connection implements Runnable, java.awt.event.ActionListener {
     public void close() throws IOException {
         if (this.scsi != null) {
             try {
-                Timer localTimer = new Timer(2000, this);
+                Timer localTimer = new Timer(2000, new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        try {
+                            internalClose();
+                        } catch (IOException ignored) {}
+                    }
+                });
                 localTimer.setRepeats(false);
                 localTimer.start();
                 this.scsi.change_disk();
                 localTimer.stop();
-            } catch (Exception localException) {
+            } catch (Exception e) {
                 this.scsi.change_disk();
             }
         } else {
-            internal_close();
+            internalClose();
         }
     }
 
     public void actionPerformed(java.awt.event.ActionEvent paramActionEvent) {
         try {
-            internal_close();
+            internalClose();
         } catch (Exception ignored) {}
     }
 
-    public void internal_close() throws IOException {
+    public void internalClose() throws IOException {
         if (this.socket != null) this.socket.close();
         this.socket = null;
         this.in = null;
@@ -190,7 +199,7 @@ public class Connection implements Runnable, java.awt.event.ActionListener {
                     D.println(D.VERBOSE, "Closing scsi and socket");
                     try {
                         this.scsi.close();
-                        if (!this.changing_disks) internal_close();
+                        if (!this.changing_disks) internalClose();
                     } catch (IOException localIOException2) {
                         D.println(D.FATAL, "Exception closing connection " + localIOException2);
                     }
