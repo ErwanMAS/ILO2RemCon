@@ -3,9 +3,12 @@ package com.hp.ilo2.virtdevs;
 import java.io.OutputStream;
 
 public class ReplyHeader {
-    public static final int magic = 195936478; // 0xBADC0DE
+    public static final int magic = 0xBADC0DE;
+
+    //flags
     public static final int WP = 1;
     public static final int KEEPALIVE = 2;
+
     int flags;
     byte sense_key;
     byte asc;
@@ -14,68 +17,68 @@ public class ReplyHeader {
     int length;
     byte[] data = new byte[16];
 
-    void set(int paramInt1, int paramInt2, int paramInt3, int paramInt4) {
-        this.sense_key = ((byte) paramInt1);
-        this.asc = ((byte) paramInt2);
-        this.ascq = ((byte) paramInt3);
-        this.length = paramInt4;
+    void set(int sense_key, int asc, int ascq, int length) {
+        this.sense_key = ((byte) sense_key);
+        this.asc = ((byte) asc);
+        this.ascq = ((byte) ascq);
+        this.length = length;
     }
 
-    void setmedia(int paramInt) {
-        this.media = ((byte) paramInt);
+    void setmedia(int media) {
+        this.media = ((byte) media);
     }
 
-    void setflags(boolean paramBoolean) {
-        if (paramBoolean) this.flags |= WP;
+    void setflags(boolean wp) {
+        if (wp) this.flags |= WP;
         else {
-            this.flags &= 0xFFFFFFFE;
+            this.flags &= ~WP;
         }
     }
 
     void keepalive(boolean paramBoolean) {
         if (paramBoolean) this.flags |= KEEPALIVE;
         else {
-            this.flags &= 0xFFFFFFFD;
+            this.flags &= ~KEEPALIVE;
         }
     }
 
-    void send(OutputStream paramOutputStream) throws java.io.IOException {
-        this.data[0] = -34;
-        this.data[1] = -64;
-        this.data[2] = -83;
-        this.data[3] = 11;
-        this.data[4] = ((byte) (this.flags & 0xFF));
-        this.data[5] = ((byte) (this.flags >> 8 & 0xFF));
-        this.data[6] = ((byte) (this.flags >> 16 & 0xFF));
-        this.data[7] = ((byte) (this.flags >> 24 & 0xFF));
-        this.data[8] = this.media;
-        this.data[9] = this.sense_key;
+    void send(OutputStream out) throws java.io.IOException {
+        this.data[0]  = (byte) (magic       & 0xFF); //0xDE
+        this.data[1]  = (byte) (magic >>  8 & 0xFF); //0xC0
+        this.data[2]  = (byte) (magic >> 16 & 0xFF); //0xAD
+        this.data[3]  = (byte) (magic >> 24 & 0xFF); //0x0B
+        this.data[4]  = (byte) (flags       & 0xFF);
+        this.data[5]  = (byte) (flags >>  8 & 0xFF);
+        this.data[6]  = (byte) (flags >> 16 & 0xFF);
+        this.data[7]  = (byte) (flags >> 24 & 0xFF);
+        this.data[8]  = this.media;
+        this.data[9]  = this.sense_key;
         this.data[10] = this.asc;
         this.data[11] = this.ascq;
-        this.data[12] = ((byte) (this.length & 0xFF));
-        this.data[13] = ((byte) (this.length >> 8 & 0xFF));
-        this.data[14] = ((byte) (this.length >> 16 & 0xFF));
-        this.data[15] = ((byte) (this.length >> 24 & 0xFF));
-        paramOutputStream.write(this.data, 0, 16);
+        this.data[12] = (byte) (length       & 0xFF);
+        this.data[13] = (byte) (length >>  8 & 0xFF);
+        this.data[14] = (byte) (length >> 16 & 0xFF);
+        this.data[15] = (byte) (length >> 24 & 0xFF);
+        out.write(this.data, 0, 16);
     }
 
-    void sendsynch(OutputStream paramOutputStream, byte[] paramArrayOfByte) throws java.io.IOException {
-        this.data[0] = -34;
-        this.data[1] = -64;
-        this.data[2] = -83;
-        this.data[3] = 11;
-        this.data[4] = ((byte) (this.flags & 0xFF));
-        this.data[5] = ((byte) (this.flags >> 8 & 0xFF));
-        this.data[6] = ((byte) (this.flags >> 16 & 0xFF));
-        this.data[7] = ((byte) (this.flags >> 24 & 0xFF));
-        this.data[8] = paramArrayOfByte[4];
-        this.data[9] = paramArrayOfByte[5];
+    void sendsynch(OutputStream out, byte[] paramArrayOfByte) throws java.io.IOException {
+        this.data[0]  = (byte) (magic       & 0xFF); //0xDE
+        this.data[1]  = (byte) (magic >>  8 & 0xFF); //0xC0
+        this.data[2]  = (byte) (magic >> 16 & 0xFF); //0xAD
+        this.data[3]  = (byte) (magic >> 24 & 0xFF); //0x0B
+        this.data[4]  = (byte) (flags       & 0xFF);
+        this.data[5]  = (byte) (flags >> 8  & 0xFF);
+        this.data[6]  = (byte) (flags >> 16 & 0xFF);
+        this.data[7]  = (byte) (flags >> 24 & 0xFF);
+        this.data[8]  = paramArrayOfByte[4];
+        this.data[9]  = paramArrayOfByte[5];
         this.data[10] = paramArrayOfByte[6];
         this.data[11] = paramArrayOfByte[7];
         this.data[12] = paramArrayOfByte[8];
         this.data[13] = paramArrayOfByte[9];
         this.data[14] = paramArrayOfByte[10];
         this.data[15] = paramArrayOfByte[11];
-        paramOutputStream.write(this.data, 0, 16);
+        out.write(this.data, 0, 16);
     }
 }
