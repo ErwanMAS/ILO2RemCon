@@ -8,7 +8,7 @@ import java.net.Socket;
 public class SCSIcdimage extends SCSI {
     int fdd_state = 0;
     int event_state = 0;
-    long media_sz;
+    long mediaSize;
     virtdevs cdi;
 
     public SCSIcdimage(Socket paramSocket, InputStream paramInputStream, BufferedOutputStream paramBufferedOutputStream, String paramString, int paramInt, virtdevs paramvirtdevs) throws IOException {
@@ -18,18 +18,18 @@ public class SCSIcdimage extends SCSI {
         D.println(D.INFORM, "Media open returns " + i + " / " + this.media.size() + " bytes");
     }
 
-    public void setWriteProt(boolean paramBoolean) {
-        this.writeprot = paramBoolean;
+    public void setWriteProt(boolean writeProtect) {
+        this.writeprot = writeProtect;
     }
 
     public void process() throws IOException {
         D.println(D.INFORM, "Device: " + this.selectedDevice + " (" + this.targetIsDevice + ")");
         read_command(this.req, 12);
         D.println(D.INFORM, "SCSI Request: ");
-        D.hexdump(1, this.req, 12);
+        D.hexdump(D.INFORM, this.req, 12);
 
-        this.media_sz = this.media.size();
-        if (this.media_sz == 0L) {
+        this.mediaSize = this.media.size();
+        if (this.mediaSize == 0L) {
             this.reply.setmedia(0);
             this.fdd_state = 0;
 
@@ -48,32 +48,32 @@ public class SCSIcdimage extends SCSI {
             }
         }
         switch (this.req[0] & 0xFF) {
-            case 30:
+            case SCSI_PA_MEDIA_REMOVAL:
                 client_pa_media_removal(this.req);
                 break;
-            case 37:
+            case SCSI_READ_CAPACITY:
                 client_read_capacity();
                 break;
-            case 29:
+            case SCSI_SEND_DIAGNOSTIC:
                 client_send_diagnostic();
                 break;
-            case 0:
+            case SCSI_TEST_UNIT_READY:
                 client_test_unit_ready();
                 break;
-            case 40:
-            case 168:
+            case SCSI_READ_10:
+            case SCSI_READ_12:
                 client_read(this.req);
                 break;
-            case 27:
+            case SCSI_START_STOP_UNIT:
                 client_start_stop_unit(this.req);
                 break;
-            case 67:
+            case SCSI_READ_TOC:
                 client_read_toc(this.req);
                 break;
-            case 90:
+            case SCSI_MODE_SENSE:
                 client_mode_sense(this.req);
                 break;
-            case 74:
+            case SCSI_GET_EVENT_STATUS:
                 client_get_event_status(this.req);
                 break;
             default:
@@ -86,11 +86,11 @@ public class SCSIcdimage extends SCSI {
 
     void client_send_diagnostic() throws IOException {}
 
-    void client_read(byte[] paramArrayOfByte) throws IOException {
-        int j = paramArrayOfByte[0] == 168 ? 1 : 0;
+    void client_read(byte[] request) throws IOException {
+        int j = request[0] == SCSI_READ_12 ? 1 : 0;
 
-        long l = SCSI.mk_int32(paramArrayOfByte, 2) * 2048L;
-        int i = j != 0 ? SCSI.mk_int32(paramArrayOfByte, 6) : SCSI.mk_int16(paramArrayOfByte, 7);
+        long l = SCSI.mk_int32(request, 2) * 2048;
+        int i = j != 0 ? SCSI.mk_int32(request, 6) : SCSI.mk_int16(request, 7);
         i *= 2048;
 
         D.println(D.VERBOSE, "CDImage :Client read " + l + ", len=" + i);
@@ -105,7 +105,7 @@ public class SCSIcdimage extends SCSI {
             i = 0;
             this.fdd_state = 2;
 
-        } else if ((l >= 0L) && (l < this.media_sz)) {
+        } else if ((l >= 0) && (l < this.mediaSize)) {
             this.media.read(l, i, this.buffer);
             this.reply.set(0, 0, 0, i);
         } else {
@@ -120,8 +120,8 @@ public class SCSIcdimage extends SCSI {
         this.out.flush();
     }
 
-    void client_pa_media_removal(byte[] paramArrayOfByte) throws IOException {
-        if ((paramArrayOfByte[4] & 0x1) != 0) {
+    void client_pa_media_removal(byte[] request) throws IOException {
+        if ((request[4] & 0x1) != 0) {
             D.println(D.VERBOSE, "Media removal prevented");
         } else {
             D.println(D.VERBOSE, "Media removal allowed");
@@ -132,8 +132,8 @@ public class SCSIcdimage extends SCSI {
     }
 
 
-    void client_start_stop_unit(byte[] paramArrayOfByte) throws IOException {
-        int i = (byte) (paramArrayOfByte[4] & 0x3);
+    void client_start_stop_unit(byte[] request) throws IOException {
+        int i = (byte) (request[4] & 0x3);
 
         if (i == 3) {
             if (this.cdi.cdConnection != null) {
@@ -195,18 +195,18 @@ public class SCSIcdimage extends SCSI {
             this.out.write(arrayOfByte, 0, arrayOfByte.length);
         this.out.flush();
         D.println(D.VERBOSE, "client_read_capacity: ");
-        D.hexdump(3, arrayOfByte, 8);
+        D.hexdump(D.VERBOSE, arrayOfByte, 8);
     }
 
-    void client_read_toc(byte[] paramArrayOfByte) throws IOException {
-        int i = (paramArrayOfByte[1] & 0x2) != 0 ? 1 : 0;
-        int j = (paramArrayOfByte[9] & 0xC0) >> 6;
+    void client_read_toc(byte[] request) throws IOException {
+        int i = (request[1] & 0x2) != 0 ? 1 : 0;
+        int j = (request[9] & 0xC0) >> 6;
         int k = (int) (this.media.size() / 2048L);
         double d = k / 75.0D + 2.0D;
         int m = (int) d / 60;
         int n = (int) d % 60;
         int i1 = (int) ((d - (int) d) * 75.0D);
-        int i2 = SCSI.mk_int16(paramArrayOfByte, 7);
+        int i2 = SCSI.mk_int16(request, 7);
 
         for (int i3 = 0; i3 < i2; i3++) {
             this.buffer[i3] = 0;
@@ -233,8 +233,8 @@ public class SCSIcdimage extends SCSI {
             this.buffer[15] = 0;
             this.buffer[16] = 0;
             this.buffer[17] = (i != 0 ? (byte) m : (byte) (k >> 16 & 0xFF));
-            this.buffer[18] = (i != 0 ? (byte) n : (byte) (k >> 8 & 0xFF));
-            this.buffer[19] = (i != 0 ? (byte) i1 : (byte) (k & 0xFF));
+            this.buffer[18] = (i != 0 ? (byte) n : (byte) (k >>  8 & 0xFF));
+            this.buffer[19] = (i != 0 ? (byte) i1: (byte) (k >>  0 & 0xFF));
         }
 
         if (j == 1) {
@@ -255,14 +255,14 @@ public class SCSIcdimage extends SCSI {
 
         k = 412;
         if (i2 < k) k = i2;
-        D.hexdump(3, this.buffer, k);
+        D.hexdump(D.VERBOSE, this.buffer, k);
         this.reply.set(0, 0, 0, k);
         this.reply.send(this.out);
         this.out.write(this.buffer, 0, k);
         this.out.flush();
     }
 
-    void client_mode_sense(byte[] paramArrayOfByte) throws IOException {
+    void client_mode_sense(byte[] request) throws IOException {
         this.buffer[0] = 0;
         this.buffer[1] = 8;
         this.buffer[2] = 1;
@@ -272,21 +272,21 @@ public class SCSIcdimage extends SCSI {
         this.buffer[6] = 0;
         this.buffer[7] = 0;
         this.reply.set(0, 0, 0, 8);
-        D.hexdump(3, this.buffer, 8);
+        D.hexdump(D.VERBOSE, this.buffer, 8);
         this.reply.setmedia(this.buffer[2]);
         this.reply.send(this.out);
         this.out.write(this.buffer, 0, 8);
         this.out.flush();
     }
 
-    void client_get_event_status(byte[] paramArrayOfByte) throws IOException {
-        int i = paramArrayOfByte[4];
-        int j = SCSI.mk_int16(paramArrayOfByte, 7);
+    void client_get_event_status(byte[] request) throws IOException {
+        int i = request[4];
+        int j = SCSI.mk_int16(request, 7);
         for (int k = 0; k < j; k++) {
             this.buffer[k] = 0;
         }
 
-        if ((paramArrayOfByte[1] & 0x1) == 0) {
+        if ((request[1] & 0x1) == 0) {
             this.reply.set(5, 36, 0, 0);
             this.reply.send(this.out);
             this.out.flush();
@@ -318,22 +318,21 @@ public class SCSIcdimage extends SCSI {
                 this.buffer[5] = 2;
             }
 
-            D.hexdump(3, this.buffer, 8);
+            D.hexdump(D.VERBOSE, this.buffer, 8);
             this.reply.set(0, 0, 0, j < 8 ? j : 8);
             this.reply.send(this.out);
             this.out.write(this.buffer, 0, j < 8 ? j : 8);
-            this.out.flush();
         } else {
             this.buffer[0] = 0;
             this.buffer[1] = 2;
             this.buffer[2] = Byte.MIN_VALUE;
             this.buffer[3] = 16;
-            D.hexdump(3, this.buffer, 4);
+            D.hexdump(D.VERBOSE, this.buffer, 4);
             this.reply.set(0, 0, 0, j < 4 ? j : 4);
             this.reply.send(this.out);
             this.out.write(this.buffer, 0, j < 4 ? j : 4);
-            this.out.flush();
         }
+        this.out.flush();
     }
 }
 
