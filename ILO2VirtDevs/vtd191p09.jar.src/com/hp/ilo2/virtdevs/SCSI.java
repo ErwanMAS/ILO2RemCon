@@ -38,9 +38,9 @@ public abstract class SCSI {
     public static final int SCSI_MECHANISM_STATUS = 189;
     public static final int SCSI_GET_EVENT_STATUS = 74;
 
+    protected Socket sock;
     protected InputStream in;
     protected BufferedOutputStream out;
-    protected Socket sock;
 
     MediaAccess media = new MediaAccess();
     ReplyHeader reply = new ReplyHeader();
@@ -62,31 +62,26 @@ public abstract class SCSI {
     }
 
     public static int mk_int32(byte[] buffer, int offset) {
-        int i = buffer[offset + 0];
-        int j = buffer[offset + 1];
-        int k = buffer[offset + 2];
-        int m = buffer[offset + 3];
+        byte i = buffer[offset + 0];
+        byte j = buffer[offset + 1];
+        byte k = buffer[offset + 2];
+        byte m = buffer[offset + 3];
 
-        int n = (i & 0xFF) << 24 | (j & 0xFF) << 16 | (k & 0xFF) << 8 | m & 0xFF;
-
-        return n;
+        return i << 24 | j << 16 | k << 8 | m;
     }
 
     public static int mk_int24(byte[] buffer, int offset) {
-        int i = buffer[offset + 0];
-        int j = buffer[offset + 1];
-        int k = buffer[offset + 2];
+        byte i = buffer[offset + 0];
+        byte j = buffer[offset + 1];
+        byte k = buffer[offset + 2];
 
-        int m = (i & 0xFF) << 16 | (j & 0xFF) << 8 | k & 0xFF;
-
-        return m;
+        return i << 16 | j << 8 | k;
     }
 
     public static int mk_int16(byte[] buffer, int offset) {
-        int i = buffer[offset + 0];
-        int j = buffer[offset + 1];
-        int k = (i & 0xFF) << 8 | j & 0xFF;
-        return k;
+        byte i = buffer[offset + 0];
+        byte j = buffer[offset + 1];
+        return i << 8 | j;
     }
 
     public boolean getWriteProt() {
@@ -102,8 +97,7 @@ public abstract class SCSI {
         this.media.close();
     }
 
-    protected int read_complete(byte[] buffer, int length)
-            throws IOException {
+    protected int read_complete(byte[] buffer, int length) throws IOException {
         int totalBytesRead = 0;
         int bytesRead;
         while (length > 0) {
@@ -127,7 +121,7 @@ public abstract class SCSI {
             try {
                 this.sock.setSoTimeout(1000);
                 totalBytesRead = this.in.read(buffer, 0, length);
-            } catch (InterruptedIOException localInterruptedIOException) {
+            } catch (InterruptedIOException e) {
                 this.reply.keepalive(true);
                 D.println(D.VERBOSE, "Sending keepalive");
                 this.reply.send(this.out);
