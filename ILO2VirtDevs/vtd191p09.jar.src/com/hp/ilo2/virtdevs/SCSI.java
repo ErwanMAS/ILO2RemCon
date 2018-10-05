@@ -47,43 +47,44 @@ public abstract class SCSI {
 
     String selectedDevice;
     boolean writeprot = false;
-    boolean please_exit = false;
+    boolean pleaseExit = false;
     int targetIsDevice = 0;
     byte[] buffer = new byte[0x20000];
     byte[] req = new byte[12];
 
-    public SCSI(Socket paramSocket, InputStream paramInputStream, BufferedOutputStream paramBufferedOutputStream, String paramString, int paramInt) {
-        this.sock = paramSocket;
-        this.in = paramInputStream;
-        this.out = paramBufferedOutputStream;
-        this.selectedDevice = paramString;
-        this.targetIsDevice = paramInt;
+    public SCSI(Socket socket, InputStream inStream, BufferedOutputStream outStream, String selectedDevice, int targetIsDevice) {
+        this.sock = socket;
+        this.in = inStream;
+        this.out = outStream;
+        this.selectedDevice = selectedDevice;
+        this.targetIsDevice = targetIsDevice;
+
     }
 
-    public static int mk_int32(byte[] paramArrayOfByte, int paramInt) {
-        int i = paramArrayOfByte[(paramInt + 0)];
-        int j = paramArrayOfByte[(paramInt + 1)];
-        int k = paramArrayOfByte[(paramInt + 2)];
-        int m = paramArrayOfByte[(paramInt + 3)];
+    public static int mk_int32(byte[] buffer, int offset) {
+        int i = buffer[offset + 0];
+        int j = buffer[offset + 1];
+        int k = buffer[offset + 2];
+        int m = buffer[offset + 3];
 
         int n = (i & 0xFF) << 24 | (j & 0xFF) << 16 | (k & 0xFF) << 8 | m & 0xFF;
 
         return n;
     }
 
-    public static int mk_int24(byte[] paramArrayOfByte, int paramInt) {
-        int i = paramArrayOfByte[(paramInt + 0)];
-        int j = paramArrayOfByte[(paramInt + 1)];
-        int k = paramArrayOfByte[(paramInt + 2)];
+    public static int mk_int24(byte[] buffer, int offset) {
+        int i = buffer[offset + 0];
+        int j = buffer[offset + 1];
+        int k = buffer[offset + 2];
 
         int m = (i & 0xFF) << 16 | (j & 0xFF) << 8 | k & 0xFF;
 
         return m;
     }
 
-    public static int mk_int16(byte[] paramArrayOfByte, int paramInt) {
-        int i = paramArrayOfByte[(paramInt + 0)];
-        int j = paramArrayOfByte[(paramInt + 1)];
+    public static int mk_int16(byte[] buffer, int offset) {
+        int i = buffer[offset + 0];
+        int j = buffer[offset + 1];
         int k = (i & 0xFF) << 8 | j & 0xFF;
         return k;
     }
@@ -101,58 +102,59 @@ public abstract class SCSI {
         this.media.close();
     }
 
-    protected int read_complete(byte[] paramArrayOfByte, int paramInt)
+    protected int read_complete(byte[] buffer, int length)
             throws IOException {
-        int i = 0;
-        int j = 0;
-        while (paramInt > 0) {
+        int totalBytesRead = 0;
+        int bytesRead;
+        while (length > 0) {
             try {
                 this.sock.setSoTimeout(1000);
-                j = this.in.read(paramArrayOfByte, i, paramInt);
-            } catch (InterruptedIOException localInterruptedIOException) {
+                bytesRead = this.in.read(buffer, totalBytesRead, length);
+            } catch (InterruptedIOException e) {
                 continue;
             }
-            if (j < 0)
+            if (bytesRead < 0)
                 break;
-            paramInt -= j;
-            i += j;
+            length -= bytesRead;
+            totalBytesRead += bytesRead;
         }
-        return i;
+        return totalBytesRead;
     }
 
-    protected int read_command(byte[] paramArrayOfByte, int paramInt) throws IOException {
-        int i = 0;
+    protected int read_command(byte[] buffer, int length) throws IOException {
+        int totalBytesRead = 0;
         while (true) {
             try {
                 this.sock.setSoTimeout(1000);
-                i = this.in.read(paramArrayOfByte, 0, paramInt);
+                totalBytesRead = this.in.read(buffer, 0, length);
             } catch (InterruptedIOException localInterruptedIOException) {
                 this.reply.keepalive(true);
                 D.println(D.VERBOSE, "Sending keepalive");
                 this.reply.send(this.out);
                 this.out.flush();
                 this.reply.keepalive(false);
-                if (!this.please_exit) {
+                if (!this.pleaseExit) {
                     break;
                 }
                 continue;
             }
 
-            if ((paramArrayOfByte[0] & 0xFF) != 254) break;
-            this.reply.sendsynch(this.out, paramArrayOfByte);
+            if ((buffer[0] & 0xFF) != 0xFE) break;
+
+            this.reply.sendsynch(this.out, buffer);
             this.out.flush();
         }
 
 
-        if (this.please_exit) throw new IOException("Asked to exit");
-        if (i < 0) throw new IOException("Socket Closed");
-        return i;
+        if (this.pleaseExit) throw new IOException("Asked to exit");
+        if (totalBytesRead < 0) throw new IOException("Socket Closed");
+        return totalBytesRead;
     }
 
     public abstract void process() throws IOException;
 
     public void change_disk() {
-        this.please_exit = true;
+        this.pleaseExit = true;
     }
 }
 
