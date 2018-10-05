@@ -161,8 +161,9 @@ public class Connection implements Runnable, java.awt.event.ActionListener {
     }
 
     public void run() {
-        do {
+        while(true) {
             this.changing_disks = false;
+
             try {
                 if ((this.device == FLOPPY) || (this.device == USBKEY)) {
                     this.scsi = new SCSIFloppy(this.socket, this.in, this.out, this.target, this.targetIsDevice);
@@ -183,7 +184,7 @@ public class Connection implements Runnable, java.awt.event.ActionListener {
 
 
             this.scsi.setWriteProtect(this.writeProtect);
-            for (; ; ) {
+            while (true) {
                 if (((this.device == FLOPPY) || (this.device == USBKEY)) && (this.scsi.getWriteProtect())) {
                     this.v.readOnlyCheckbox.setState(true);
                     this.v.readOnlyCheckbox.setEnabled(false);
@@ -208,14 +209,17 @@ public class Connection implements Runnable, java.awt.event.ActionListener {
                         this.v.readOnlyCheckbox.setEnabled(true);
                         this.v.readOnlyCheckbox.repaint();
                     }
+
+                    if (this.changing_disks) break;
+
+                    if ((this.device == FLOPPY) || (this.device == USBKEY)) {
+                        this.v.fdDisconnect();
+                    } else if (this.device == CDROM) {
+                        this.v.cdDisconnect();
+                    }
                 }
             }
-        } while (this.changing_disks);
-        /*if ((this.device == FLOPPY) || (this.device == USBKEY)) {
-          this.v.fdDisconnect();
-        } else if (this.device == CDROM) {
-          this.v.cdDisconnect();
-        }*/
+        }
     }
 }
 
