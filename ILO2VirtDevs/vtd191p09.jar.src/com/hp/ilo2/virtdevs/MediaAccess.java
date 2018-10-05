@@ -2,7 +2,6 @@ package com.hp.ilo2.virtdevs;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.RandomAccessFile;
 
 public class MediaAccess {
@@ -32,132 +31,132 @@ public class MediaAccess {
 
     DirectIO dio;
     File file;
-    RandomAccessFile raf;
-    boolean dev = false;
+    RandomAccessFile randomAccessFile;
+    boolean targetIsDevice = false;
     boolean readonly = false;
     int zero_offset = 0;
 
     public static void cleanup() {
-        String str1 = System.getProperty("file.separator");
-        String str2 = System.getProperty("java.io.tmpdir");
-        String str3 = System.getProperty("os.name").toLowerCase();
-        if (str2 == null) {
-            str2 = str3.startsWith("windows") ? "C:\\TEMP" : "/tmp";
+        String sep = System.getProperty("file.separator");
+        String tmpDir = System.getProperty("java.io.tmpdir");
+        String osName = System.getProperty("os.name").toLowerCase();
+        if (tmpDir == null) {
+            tmpDir = osName.startsWith("windows") ? "C:\\TEMP" : "/tmp";
         }
-        File localFile1 = new File(str2);
-        String[] arrayOfString = localFile1.list();
+        File fTmpDir = new File(tmpDir);
+        String[] fileNames = fTmpDir.list();
 
-        if (!str2.endsWith(str1)) {
-            str2 = str2 + str1;
+        if (!tmpDir.endsWith(sep)) {
+            tmpDir = tmpDir + sep;
         }
-        for (int i = 0; i < arrayOfString.length; i++) {
-            if ((arrayOfString[i].startsWith("cpqma-")) && (arrayOfString[i].endsWith(dllext))) {
-                File localFile2 = new File(str2 + arrayOfString[i]);
-                localFile2.delete();
+        for (int i = 0; i < fileNames.length; i++) {
+            if ((fileNames[i].startsWith("cpqma-")) && (fileNames[i].endsWith(dllext))) {
+                File currentFile = new File(tmpDir + fileNames[i]);
+                currentFile.delete();
             }
         }
     }
 
-    public int open(String paramString, int paramInt) throws IOException {
-        this.dev = ((paramInt & 0x1) == 1);
-        int i = (paramInt & 0x2) == 2 ? 1 : 0;
+    public int open(String path, int flags) throws IOException {
+        this.targetIsDevice = ((flags & 0x1) == 1);
+        int isDiskImage = (flags & 0x2) == 2 ? 1 : 0;
 
 
         this.zero_offset = 0;
-        if (this.dev) {
+        if (this.targetIsDevice) {
             if (dio_setup != 0) {
                 throw new IOException("DirectIO not possible (" + dio_setup + ")");
             }
             if (this.dio == null)
                 this.dio = new DirectIO();
-            return this.dio.open(paramString);
+            return this.dio.open(path);
         }
         this.readonly = false;
-        this.file = new File(paramString);
-        if ((!this.file.exists()) && (i == 0))
-            throw new IOException("File " + paramString + " does not exist");
+        this.file = new File(path);
+        if ((!this.file.exists()) && (isDiskImage == 0))
+            throw new IOException("File " + path + " does not exist");
         if (this.file.isDirectory()) {
-            throw new IOException("File " + paramString + " is a directory");
+            throw new IOException("File " + path + " is a directory");
         }
 
 
         try {
-            this.raf = new RandomAccessFile(paramString, "rw");
-        } catch (IOException localIOException) {
-            if (i == 0) {
-                this.raf = new RandomAccessFile(paramString, "r");
+            this.randomAccessFile = new RandomAccessFile(path, "rw");
+        } catch (IOException e) {
+            if (isDiskImage == 0) {
+                this.randomAccessFile = new RandomAccessFile(path, "r");
                 this.readonly = true;
             } else {
-                throw localIOException;
+                throw e;
             }
         }
 
-        byte[] arrayOfByte = new byte['Ȁ'];
+        byte[] buf = new byte['Ȁ'];
 
 
-        read(0L, 512, arrayOfByte);
-        if ((arrayOfByte[0] == 67) && (arrayOfByte[1] == 80) && (arrayOfByte[2] == 81) && (arrayOfByte[3] == 82) && (arrayOfByte[4] == 70) && (arrayOfByte[5] == 66) && (arrayOfByte[6] == 76) && (arrayOfByte[7] == 79)) {
+        read(0L, 512, buf);
+        if ((buf[0] == 67) && (buf[1] == 80) && (buf[2] == 81) && (buf[3] == 82) && (buf[4] == 70) && (buf[5] == 66) && (buf[6] == 76) && (buf[7] == 79)) {
 
 
-            this.zero_offset = (arrayOfByte[14] | arrayOfByte[15] << 8);
+            this.zero_offset = (buf[14] | buf[15] << 8);
         }
-        arrayOfByte = null;
+        buf = null;
 
         return 0;
     }
 
     public int close() throws IOException {
-        if (this.dev) {
+        if (this.targetIsDevice) {
             return this.dio.close();
         }
-        this.raf.close();
+        this.randomAccessFile.close();
 
         return 0;
     }
 
-    public void read(long paramLong, int paramInt, byte[] paramArrayOfByte) throws IOException {
-        paramLong += this.zero_offset;
-        if (this.dev) {
-            int i = this.dio.read(paramLong, paramInt, paramArrayOfByte);
+    public void read(long offset, int length, byte[] data) throws IOException {
+        offset += this.zero_offset;
+        if (this.targetIsDevice) {
+            int i = this.dio.read(offset, length, data);
             if (i != 0) {
                 throw new IOException("DirectIO read error (" + this.dio.sysError(-i) + ")");
             }
         } else {
-            this.raf.seek(paramLong);
-            this.raf.read(paramArrayOfByte, 0, paramInt);
+            this.randomAccessFile.seek(offset);
+            this.randomAccessFile.read(data, 0, length);
         }
     }
 
-    public void write(long paramLong, int paramInt, byte[] paramArrayOfByte) throws IOException {
-        paramLong += this.zero_offset;
-        if (this.dev) {
-            int i = this.dio.write(paramLong, paramInt, paramArrayOfByte);
+    public void write(long offset, int length, byte[] data) throws IOException {
+        offset += this.zero_offset;
+        if (this.targetIsDevice) {
+            int i = this.dio.write(offset, length, data);
             if (i != 0) {
                 throw new IOException("DirectIO write error (" + this.dio.sysError(-i) + ")");
             }
         } else {
-            this.raf.seek(paramLong);
-            this.raf.write(paramArrayOfByte, 0, paramInt);
+            this.randomAccessFile.seek(offset);
+            this.randomAccessFile.write(data, 0, length);
         }
     }
 
     public long size() throws IOException {
-        long l;
-        if (this.dev) {
-            l = this.dio.size();
+        long size;
+        if (this.targetIsDevice) {
+            size = this.dio.size();
         } else {
-            l = this.raf.length() - this.zero_offset;
+            size = this.randomAccessFile.length() - this.zero_offset;
         }
-        return l;
+        return size;
     }
 
-    public int format(int paramInt1, int paramInt2, int paramInt3, int paramInt4, int paramInt5) throws IOException {
-        if (this.dev) {
-            this.dio.media_type = paramInt1;
-            this.dio.StartCylinder = paramInt2;
-            this.dio.EndCylinder = paramInt3;
-            this.dio.StartHead = paramInt4;
-            this.dio.EndHead = paramInt5;
+    public int format(int mediaType, int startCylinder, int endCylinder, int startHead, int endHead) throws IOException {
+        if (this.targetIsDevice) {
+            this.dio.media_type = mediaType;
+            this.dio.StartCylinder = startCylinder;
+            this.dio.EndCylinder = endCylinder;
+            this.dio.StartHead = startHead;
+            this.dio.EndHead = endHead;
             return this.dio.format();
         }
 
@@ -186,7 +185,7 @@ public class MediaAccess {
 
     public int scsi(byte[] paramArrayOfByte1, int paramInt1, int paramInt2, byte[] paramArrayOfByte2, byte[] paramArrayOfByte3, int paramInt3) {
         int i;
-        if (this.dev) {
+        if (this.targetIsDevice) {
             i = this.dio.scsi(paramArrayOfByte1, paramInt1, paramInt2, paramArrayOfByte2, paramArrayOfByte3, paramInt3);
         } else {
             i = -1;
@@ -195,19 +194,19 @@ public class MediaAccess {
     }
 
     public boolean wp() {
-        boolean bool;
-        if (this.dev) {
-            bool = this.dio.wp == 1;
+        boolean wp;
+        if (this.targetIsDevice) {
+            wp = this.dio.wp == 1;
         } else {
-            bool = this.readonly;
+            wp = this.readonly;
         }
-        return bool;
+        return wp;
     }
 
     public int type() {
-        if ((this.dev) && (this.dio != null))
+        if ((this.targetIsDevice) && (this.dio != null))
             return this.dio.media_type;
-        if (this.raf != null) {
+        if (this.randomAccessFile != null) {
             return 100;
         }
         return 0;
@@ -217,7 +216,7 @@ public class MediaAccess {
         ClassLoader localClassLoader = getClass().getClassLoader();
 
 
-        byte[] arrayOfByte = new byte['က'];
+        byte[] buffer = new byte['က'];
 
         D.println(D.INFORM, "dllExtract trying " + paramString1);
         if (localClassLoader.getResource(paramString1) == null) {
@@ -228,14 +227,14 @@ public class MediaAccess {
         try {
             java.io.InputStream localInputStream = localClassLoader.getResourceAsStream(paramString1);
             java.io.FileOutputStream localFileOutputStream = new java.io.FileOutputStream(paramString2);
-            int i;
-            while ((i = localInputStream.read(arrayOfByte, 0, 4096)) != -1) {
-                localFileOutputStream.write(arrayOfByte, 0, i);
+            int bytesRead;
+            while ((bytesRead = localInputStream.read(buffer, 0, 4096)) != -1) {
+                localFileOutputStream.write(buffer, 0, bytesRead);
             }
             localInputStream.close();
             localFileOutputStream.close();
-        } catch (IOException localIOException) {
-            D.println(D.FATAL, "dllExtract: " + localIOException);
+        } catch (IOException e) {
+            D.println(D.FATAL, "dllExtract: " + e);
             return -2;
         }
 
@@ -243,60 +242,60 @@ public class MediaAccess {
     }
 
     public int setup_DirectIO() {
-        int i = 0;
-        String str1 = System.getProperty("file.separator");
-        String str2 = System.getProperty("java.io.tmpdir");
-        String str3 = System.getProperty("os.name").toLowerCase();
-        String str4 = System.getProperty("java.vm.name");
-        String str5 = "unknown";
+        int returnValue = 0;
+        String sep = System.getProperty("file.separator");
+        String tmpDir = System.getProperty("java.io.tmpdir");
+        String osName = System.getProperty("os.name").toLowerCase();
+        String vmName = System.getProperty("java.vm.name");
+        String platform = "unknown";
 
-        if (str2 == null) {
-            str2 = str3.startsWith("windows") ? "C:\\TEMP" : "/tmp";
+        if (tmpDir == null) {
+            tmpDir = osName.startsWith("windows") ? "C:\\TEMP" : "/tmp";
         }
 
-        if (str3.startsWith("windows")) {
-            if (str4.indexOf("64") != -1) {
+        if (osName.startsWith("windows")) {
+            if (vmName.indexOf("64") != -1) {
                 System.out.println("virt: Detected win 64bit jvm");
-                str5 = "x86-win64";
+                platform = "x86-win64";
             } else {
                 System.out.println("virt: Detected win 32bit jvm");
-                str5 = "x86-win32";
+                platform = "x86-win32";
             }
             dllext = ".dll";
-        } else if (str3.startsWith("linux")) {
-            if (str4.indexOf("64") != -1) {
+        } else if (osName.startsWith("linux")) {
+            if (vmName.indexOf("64") != -1) {
                 System.out.println("virt: Detected 64bit linux jvm");
-                str5 = "x86-linux64";
+                platform = "x86-linux64";
             } else {
                 System.out.println("virt: Detected 32bit linux jvm");
-                str5 = "x86-linux32";
+                platform = "x86-linux32";
             }
         }
 
 
-        File localFile1 = new File(str2);
-        if (!localFile1.exists()) {
-            localFile1.mkdir();
+        File fTmpDir = new File(tmpDir);
+        if (!fTmpDir.exists()) {
+            fTmpDir.mkdir();
         }
 
-        if (!str2.endsWith(str1)) {
-            str2 = str2 + str1;
+        if (!tmpDir.endsWith(sep)) {
+            tmpDir = tmpDir + sep;
         }
-        str2 = str2 + "cpqma-" + Integer.toHexString(virtdevs.UID) + dllext;
+        tmpDir = tmpDir + "cpqma-" + Integer.toHexString(virtdevs.UID) + dllext;
 
 
-        System.out.println("Checking for " + str2);
-        File localFile2 = new File(str2);
-        if (localFile2.exists()) {
+        System.out.println("Checking for " + tmpDir);
+        File nativeLibrary = new File(tmpDir);
+        if (nativeLibrary.exists()) {
             System.out.println("DLL present");
             dio_setup = 0;
             return 0;
         }
         System.out.println("DLL not present");
 
-        i = dllExtract("com/hp/ilo2/virtdevs/cpqma-" + str5, str2);
+        returnValue = dllExtract("com/hp/ilo2/virtdevs/cpqma-" + platform, tmpDir);
 
-        dio_setup = i;
-        return i;
+        dio_setup = returnValue;
+        return returnValue;
     }
 }
