@@ -122,7 +122,7 @@ public abstract class SCSI {
 
     protected int read_command(byte[] paramArrayOfByte, int paramInt) throws IOException {
         int i = 0;
-        for (; ; ) {
+        while (true) {
             try {
                 this.sock.setSoTimeout(1000);
                 i = this.in.read(paramArrayOfByte, 0, paramInt);
@@ -133,15 +133,14 @@ public abstract class SCSI {
                 this.out.flush();
                 this.reply.keepalive(false);
                 if (!this.please_exit) {
-                    continue;
+                    break;
                 }
+                continue;
             }
-            break;
-      /*label81:
-      
-      if ((paramArrayOfByte[0] & 0xFF) != 254) break;
-      this.reply.sendsynch(this.out, paramArrayOfByte);
-      this.out.flush();*/
+
+            if ((paramArrayOfByte[0] & 0xFF) != 254) break;
+            this.reply.sendsynch(this.out, paramArrayOfByte);
+            this.out.flush();
         }
 
 
