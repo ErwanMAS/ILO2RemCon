@@ -31,9 +31,9 @@ public class MediaAccess {
 
     DirectIO dio;
     File file;
-    RandomAccessFile randomAccessFile;
-    boolean targetIsDevice = false;
-    boolean readonly = false;
+    private RandomAccessFile randomAccessFile;
+    private boolean targetIsDevice = false;
+    private boolean readonly = false;
     int zero_offset = 0;
 
     public static void cleanup() {
@@ -49,9 +49,9 @@ public class MediaAccess {
         if (!tmpDir.endsWith(sep)) {
             tmpDir = tmpDir + sep;
         }
-        for (int i = 0; i < fileNames.length; i++) {
-            if ((fileNames[i].startsWith("cpqma-")) && (fileNames[i].endsWith(dllext))) {
-                File currentFile = new File(tmpDir + fileNames[i]);
+        for (String fileName : fileNames) {
+            if ((fileName.startsWith("cpqma-")) && (fileName.endsWith(dllext))) {
+                File currentFile = new File(tmpDir + fileName);
                 currentFile.delete();
             }
         }
@@ -91,16 +91,11 @@ public class MediaAccess {
             }
         }
 
-        byte[] buf = new byte['Ȁ'];
-
-
-        read(0L, 512, buf);
-        if ((buf[0] == 67) && (buf[1] == 80) && (buf[2] == 81) && (buf[3] == 82) && (buf[4] == 70) && (buf[5] == 66) && (buf[6] == 76) && (buf[7] == 79)) {
-
-
+        byte[] buf = new byte[16];
+        read(0L, 16, buf);
+        if ((buf[0] == 'C') && (buf[1] == 'P') && (buf[2] == 'Q') && (buf[3] == 'R') && (buf[4] == 'F') && (buf[5] == 'B') && (buf[6] == 'L') && (buf[7] == 'O')) {
             this.zero_offset = (buf[14] | buf[15] << 8);
         }
-        buf = null;
 
         return 0;
     }
@@ -213,10 +208,10 @@ public class MediaAccess {
     }
 
     public int dllExtract(String paramString1, String paramString2) {
-        ClassLoader localClassLoader = getClass().getClassLoader();
+        ClassLoader localClassLoader = MediaAccess.class.getClassLoader();
 
 
-        byte[] buffer = new byte['က'];
+        byte[] buffer = new byte[4096];
 
         D.println(D.INFORM, "dllExtract trying " + paramString1);
         if (localClassLoader.getResource(paramString1) == null) {
@@ -242,7 +237,6 @@ public class MediaAccess {
     }
 
     public int setup_DirectIO() {
-        int returnValue = 0;
         String sep = System.getProperty("file.separator");
         String tmpDir = System.getProperty("java.io.tmpdir");
         String osName = System.getProperty("os.name").toLowerCase();
@@ -254,7 +248,7 @@ public class MediaAccess {
         }
 
         if (osName.startsWith("windows")) {
-            if (vmName.indexOf("64") != -1) {
+            if (vmName.contains("64")) {
                 System.out.println("virt: Detected win 64bit jvm");
                 platform = "x86-win64";
             } else {
@@ -263,7 +257,7 @@ public class MediaAccess {
             }
             dllext = ".dll";
         } else if (osName.startsWith("linux")) {
-            if (vmName.indexOf("64") != -1) {
+            if (vmName.contains("64")) {
                 System.out.println("virt: Detected 64bit linux jvm");
                 platform = "x86-linux64";
             } else {
@@ -281,8 +275,9 @@ public class MediaAccess {
         if (!tmpDir.endsWith(sep)) {
             tmpDir = tmpDir + sep;
         }
-        tmpDir = tmpDir + "cpqma-" + Integer.toHexString(virtdevs.UID) + dllext;
 
+
+        tmpDir = tmpDir + "cpqma-" + Integer.toHexString(virtdevs.UID) + dllext;
 
         System.out.println("Checking for " + tmpDir);
         File nativeLibrary = new File(tmpDir);
@@ -293,7 +288,7 @@ public class MediaAccess {
         }
         System.out.println("DLL not present");
 
-        returnValue = dllExtract("com/hp/ilo2/virtdevs/cpqma-" + platform, tmpDir);
+        int returnValue = dllExtract("com/hp/ilo2/virtdevs/cpqma-" + platform, tmpDir);
 
         dio_setup = returnValue;
         return returnValue;
