@@ -46,7 +46,7 @@ public class Connection implements Runnable, java.awt.event.ActionListener {
             D.println(D.FATAL, "Got NO CD or removable connection\n");
         }
 
-        int j = localMediaAccess.open(target, this.targetIsDevice);
+        int j = localMediaAccess.open(target, this.targetIsDevice ? 1 : 0);
         long l = localMediaAccess.size();
         localMediaAccess.close();
 
