@@ -11,8 +11,8 @@ public class SCSIcdimage extends SCSI {
     long mediaSize;
     virtdevs cdi;
 
-    public SCSIcdimage(Socket paramSocket, InputStream paramInputStream, BufferedOutputStream paramBufferedOutputStream, String paramString, int paramInt, virtdevs paramvirtdevs) throws IOException {
-        super(paramSocket, paramInputStream, paramBufferedOutputStream, paramString, paramInt);
+    public SCSIcdimage(Socket paramSocket, InputStream paramInputStream, BufferedOutputStream paramBufferedOutputStream, String paramString, virtdevs paramvirtdevs) throws IOException {
+        super(paramSocket, paramInputStream, paramBufferedOutputStream, paramString, 0);
         this.cdi = paramvirtdevs;
         int i = this.media.open(paramString, 0);
         D.println(D.INFORM, "Media open returns " + i + " / " + this.media.size() + " bytes");

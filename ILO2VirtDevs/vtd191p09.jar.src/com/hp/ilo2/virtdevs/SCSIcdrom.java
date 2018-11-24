@@ -27,13 +27,14 @@ public class SCSIcdrom extends SCSI {
     VErrorDialog dlg;
     boolean do_split_reads = false;
 
-    public SCSIcdrom(Socket paramSocket, InputStream paramInputStream, BufferedOutputStream paramBufferedOutputStream, String paramString, int paramInt) throws IOException {
-        super(paramSocket, paramInputStream, paramBufferedOutputStream, paramString, paramInt);
+    public SCSIcdrom(Socket socket, InputStream inStream, BufferedOutputStream outStream, String selectedDevice) throws IOException {
+        super(socket, inStream, outStream, selectedDevice, 0);
 
+        D.println(D.INFORM, "Media opening " + selectedDevice + "(" + (0x2) + ")");
 
         D.println(D.INFORM, "Media opening " + paramString + "(" + (paramInt | 0x2) + ")");
 
-        int i = this.media.open(paramString, paramInt);
+        int i = this.media.open(selectedDevice, targetIsDevice);
         D.println(D.INFORM, "Media open returns " + i);
         this.retrycount = Integer.valueOf(virtdevs.prop.getProperty("com.hp.ilo2.virtdevs.retrycount", "10")).intValue();
     }

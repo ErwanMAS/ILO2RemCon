@@ -14,9 +14,9 @@ public class SCSIFloppy extends SCSI {
     byte[] rcs_resp = {0, 0, 0, 16, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 11, 64, 0, 0, 2, 0};
 
 
-    public SCSIFloppy(Socket socket, InputStream inputStream, BufferedOutputStream outputStream, String selectedDevice, int targetIsDevice) throws IOException {
-        super(socket, inputStream, outputStream, selectedDevice, targetIsDevice);
-        int i = this.media.open(selectedDevice, targetIsDevice);
+    public SCSIFloppy(Socket socket, InputStream inputStream, BufferedOutputStream outputStream, String selectedDevice, boolean targetIsDevice) throws IOException {
+        super(socket, inputStream, outputStream, selectedDevice, targetIsDevice ? 1 : 0);
+        int i = this.media.open(selectedDevice, targetIsDevice ? 1 : 0);
         D.println(D.INFORM, "open returns " + i);
     }
 
