@@ -84,13 +84,13 @@ public abstract class SCSI {
         return i << 8 | j;
     }
 
-    public boolean getWriteProt() {
+    public boolean getWriteProtect() {
         D.println(D.VERBOSE, "media.wp = " + this.media.wp());
         return this.media.wp();
     }
 
-    public void setWriteProt(boolean paramBoolean) {
-        this.writeprot = paramBoolean;
+    public void setWriteProtect(boolean writeProtect) {
+        this.writeprot = writeProtect;
     }
 
     public void close() throws IOException {
