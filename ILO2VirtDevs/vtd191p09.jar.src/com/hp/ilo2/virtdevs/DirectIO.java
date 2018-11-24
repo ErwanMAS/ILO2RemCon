@@ -50,9 +50,9 @@ public class DirectIO {
 
     public native int close();
 
-    public native int read(long paramLong, int paramInt, byte[] paramArrayOfByte);
+    public native int read(long offset, int length, byte[] buf);
 
-    public native int write(long paramLong, int paramInt, byte[] paramArrayOfByte);
+    public native int write(long offset, int length, byte[] buf);
 
     public native long size();
 
