@@ -15,7 +15,7 @@ public class SCSIFloppy extends SCSI {
 
 
     public SCSIFloppy(Socket socket, InputStream inputStream, BufferedOutputStream outputStream, String selectedDevice, boolean targetIsDevice) throws IOException {
-        super(socket, inputStream, outputStream, selectedDevice, targetIsDevice ? 1 : 0);
+        super(socket, inputStream, outputStream, selectedDevice, targetIsDevice);
         int i = this.media.open(selectedDevice, targetIsDevice ? 1 : 0);
         D.println(D.INFORM, "open returns " + i);
     }

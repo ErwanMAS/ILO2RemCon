@@ -45,7 +45,7 @@ public class SCSIcdrom extends SCSI {
     private boolean doSplitReads = false;
 
     public SCSIcdrom(Socket socket, InputStream inStream, BufferedOutputStream outStream, String selectedDevice) throws IOException {
-        super(socket, inStream, outStream, selectedDevice, 0);
+        super(socket, inStream, outStream, selectedDevice, false);
 
         D.println(D.INFORM, "Media opening " + selectedDevice + "(" + (0x2) + ")");
 

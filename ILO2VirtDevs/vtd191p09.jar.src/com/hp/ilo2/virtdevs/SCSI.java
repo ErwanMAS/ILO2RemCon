@@ -52,12 +52,12 @@ public abstract class SCSI {
     byte[] buffer = new byte[0x20000];
     byte[] req = new byte[12];
 
-    public SCSI(Socket socket, InputStream inStream, BufferedOutputStream outStream, String selectedDevice, int targetIsDevice) {
+    public SCSI(Socket socket, InputStream inStream, BufferedOutputStream outStream, String selectedDevice, boolean targetIsDevice) {
         this.sock = socket;
         this.in = inStream;
         this.out = outStream;
         this.selectedDevice = selectedDevice;
-        this.targetIsDevice = targetIsDevice;
+        this.targetIsDevice = targetIsDevice ? 1 : 0;
 
     }
 
