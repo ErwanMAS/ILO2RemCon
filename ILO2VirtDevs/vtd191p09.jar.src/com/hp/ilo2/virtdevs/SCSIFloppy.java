@@ -20,7 +20,7 @@ public class SCSIFloppy extends SCSI {
         D.println(D.INFORM, "open returns " + i);
     }
 
-    public void setWriteProt(boolean writeProtect) {
+    public void setWriteProtect(boolean writeProtect) {
         this.writeprot = writeProtect;
 
         if (this.fdd_state == 2) this.fdd_state = 0;
