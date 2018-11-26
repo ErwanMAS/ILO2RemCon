@@ -58,8 +58,8 @@ public class MediaAccess {
     }
 
     public int open(String path, int flags) throws IOException {
-        this.targetIsDevice = ((flags & 0x1) == 1);
-        int isDiskImage = (flags & 0x2) == 2 ? 1 : 0;
+        this.targetIsDevice = (flags & 0x1) == 1;
+        boolean isDiskImage = (flags & 0x2) == 2;
 
 
         this.zero_offset = 0;
@@ -73,7 +73,7 @@ public class MediaAccess {
         }
         this.readonly = false;
         this.file = new File(path);
-        if ((!this.file.exists()) && (isDiskImage == 0))
+        if ((!this.file.exists()) && !isDiskImage)
             throw new IOException("File " + path + " does not exist");
         if (this.file.isDirectory()) {
             throw new IOException("File " + path + " is a directory");
@@ -83,7 +83,7 @@ public class MediaAccess {
         try {
             this.randomAccessFile = new RandomAccessFile(path, "rw");
         } catch (IOException e) {
-            if (isDiskImage == 0) {
+            if (!isDiskImage) {
                 this.randomAccessFile = new RandomAccessFile(path, "r");
                 this.readonly = true;
             } else {
