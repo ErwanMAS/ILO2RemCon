@@ -41,12 +41,7 @@ public class VirtDevsAppletStub implements AppletStub {
 
             @Override
             public Image getImage(URL url) {
-                try {
-                    return ImageIO.read(url);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    return null;
-                }
+                return null;
             }
 
             @Override
@@ -69,7 +64,7 @@ public class VirtDevsAppletStub implements AppletStub {
             public void showStatus(String status) {}
 
             @Override
-            public void setStream(String key, InputStream stream) throws IOException {}
+            public void setStream(String key, InputStream stream) {}
 
             @Override
             public InputStream getStream(String key) {
