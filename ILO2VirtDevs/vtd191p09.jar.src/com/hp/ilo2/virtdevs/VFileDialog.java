@@ -5,23 +5,23 @@ import java.awt.event.WindowEvent;
 
 public class VFileDialog extends java.awt.Frame implements java.awt.event.WindowListener
 {
-  FileDialog fd;
+  private FileDialog fd;
   
   VFileDialog(String paramString)
   {
     super(paramString);
     addWindowListener(this);
     this.fd = new FileDialog(this, paramString);
-    this.fd.show();
+    this.fd.setVisible(true);
   }
   
   public String getString()
   {
-    String str = null;
+    String path = null;
     if ((this.fd.getDirectory() != null) && (this.fd.getFile() != null)) {
-      str = this.fd.getDirectory() + this.fd.getFile();
+      path = this.fd.getDirectory() + this.fd.getFile();
     }
-    return str;
+    return path;
   }
   
   public void windowClosing(WindowEvent paramWindowEvent) { setVisible(false); }
