@@ -1,72 +1,59 @@
 package com.hp.ilo2.virtdevs;
 
-import java.awt.Component;
-import java.awt.Container;
+import java.awt.Button;
 import java.awt.Dialog;
+import java.awt.Frame;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.TextArea;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
-public class VErrorDialog extends Dialog implements java.awt.event.ActionListener
-{
-  java.awt.TextArea txt;
-  java.awt.Button ok;
-  boolean disp;
-  
-  public VErrorDialog(java.awt.Frame paramFrame, String paramString)
-  {
-    super(paramFrame, "Error", true);
-    ui_init(paramString);
+public class VErrorDialog extends Dialog {
+  public VErrorDialog(Frame owner, String paramString) {
+    super(owner, "Error", true);
+    uiInit(paramString);
   }
   
-  public VErrorDialog(String paramString, boolean paramBoolean) {
-    super(new java.awt.Frame(), "Error", paramBoolean);
-    ui_init(paramString);
+  public VErrorDialog(String message, boolean isModal) {
+    super(new Frame(), "Error", isModal);
+    uiInit(message);
   }
   
-  protected void ui_init(String paramString) {
-    this.txt = new java.awt.TextArea(paramString, 5, 40, 1);
-    
-    this.txt.setEditable(false);
-    this.ok = new java.awt.Button("    Ok    ");
-    this.ok.addActionListener(this);
-    
-    java.awt.GridBagLayout localGridBagLayout = new java.awt.GridBagLayout();
-    java.awt.GridBagConstraints localGridBagConstraints = new java.awt.GridBagConstraints();
-    
-    setLayout(localGridBagLayout);
+  private void uiInit(String message) {
+    GridBagLayout layout = new GridBagLayout();
+    setLayout(layout);
+
     setBackground(java.awt.Color.lightGray);
     setSize(300, 150);
-    
-    localGridBagConstraints.fill = 0;
-    localGridBagConstraints.anchor = 10;
-    localGridBagConstraints.weightx = 100.0D;
-    localGridBagConstraints.weighty = 100.0D;
-    localGridBagConstraints.gridx = 0;
-    localGridBagConstraints.gridy = 0;
-    localGridBagConstraints.gridwidth = 1;
-    localGridBagConstraints.gridheight = 1;
-    
-    add(this.txt, localGridBagConstraints);
-    
-    localGridBagConstraints.gridy = 1;
-    add(this.ok, localGridBagConstraints);
-    show();
-  }
-  
 
-  public void actionPerformed(java.awt.event.ActionEvent paramActionEvent)
-  {
-    if (paramActionEvent.getSource() == this.ok) {
-      dispose();
-      this.disp = true;
-    }
-  }
-  
-  public boolean disposed() {
-    return this.disp;
-  }
-  
-  public void append(String paramString) {
-    this.txt.append(paramString);
-    this.txt.repaint();
+    GridBagConstraints constraints = new GridBagConstraints();
+    constraints.fill = 0;
+    constraints.anchor = 10;
+    constraints.weightx = 100.0D;
+    constraints.weighty = 100.0D;
+    constraints.gridx = 0;
+    constraints.gridwidth = 1;
+    constraints.gridheight = 1;
+
+    constraints.gridy = 0;
+      TextArea messageTextArea = new TextArea(message, 5, 40, 1);
+      messageTextArea.setEditable(false);
+
+      add(messageTextArea, constraints);
+
+      Button ok = new Button("    Ok    ");
+      ok.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          dispose();
+        }
+      });
+    
+    constraints.gridy = 1;
+      add(ok, constraints);
+
+    setVisible(true);
   }
 }
 
