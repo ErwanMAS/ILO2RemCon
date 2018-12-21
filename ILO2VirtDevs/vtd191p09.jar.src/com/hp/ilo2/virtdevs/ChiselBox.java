@@ -1,34 +1,28 @@
 package com.hp.ilo2.virtdevs;
 
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Container;
-import java.awt.Dimension;
-import java.awt.FontMetrics;
-import java.awt.Graphics;
-import java.awt.GridBagConstraints;
-import java.awt.Panel;
+import java.awt.*;
 
 public class ChiselBox extends Panel {
-    public Panel content;
-    public String name;
-    int inx = 8;
-    int iny = 8;
-    boolean raised = false;
-    boolean enabled = true;
-    Color bg = Color.lightGray;
+    Panel content;
+    String name;
+
+    private static final int inx = 8;
+    private static final int iny = 8;
+
+    private boolean enabled = true;
+    private final Color backgroundColor = SystemColor.window;
 
     public ChiselBox() {
         this.content = new Panel();
         add(this.content);
-        setBackground(this.bg);
+        setBackground(this.backgroundColor);
     }
 
     public ChiselBox(String paramString) {
         this.content = new Panel();
         add(this.content);
         this.name = paramString;
-        setBackground(this.bg);
+        setBackground(this.backgroundColor);
     }
 
     public void setEnabled(boolean enabled) {
@@ -36,58 +30,57 @@ public class ChiselBox extends Panel {
         repaint();
     }
 
-
-    public void cadd(Component paramComponent, GridBagConstraints paramGridBagConstraints, int paramInt1, int paramInt2, int paramInt3, int paramInt4) {
-        paramGridBagConstraints.gridx = paramInt1;
-        paramGridBagConstraints.gridy = paramInt2;
-        paramGridBagConstraints.gridwidth = paramInt3;
-        paramGridBagConstraints.gridheight = paramInt4;
+    public void cadd(Component paramComponent, GridBagConstraints paramGridBagConstraints, int gridx, int gridy, int gridwidth, int gridheight) {
+        paramGridBagConstraints.gridx = gridx;
+        paramGridBagConstraints.gridy = gridy;
+        paramGridBagConstraints.gridwidth = gridwidth;
+        paramGridBagConstraints.gridheight = gridheight;
         this.content.add(paramComponent, paramGridBagConstraints);
     }
 
 
-    public void paint(Graphics paramGraphics) {
-        Dimension localDimension = getSize();
+    public void paint(Graphics g) {
+        Dimension ownSize = getSize();
+        g.setFont(new Font("Arial", Font.BOLD, 12));
+
+        Color localColor1 = this.backgroundColor.darker();
+        Color localColor2 = this.backgroundColor.brighter();
+
+        int inx = ChiselBox.inx;
+        int iny = ChiselBox.iny;
+        int k = ownSize.width - ChiselBox.inx;
+        int m = ownSize.height - ChiselBox.iny;
 
 
-        Color localColor1 = this.raised ? this.bg.brighter() : this.bg.darker();
-        Color localColor2 = this.raised ? this.bg.darker() : this.bg.brighter();
+        g.setColor(localColor1);
+        g.drawLine(inx, iny, k, iny);
+        g.drawLine(inx, iny, inx, m);
+        g.drawLine(inx + 1, m - 1, k - 1, m - 1);
+        g.drawLine(k - 1, iny + 1, k - 1, m - 1);
 
-        int i = this.inx;
-        int j = this.iny;
-        int k = localDimension.width - this.inx;
-        int m = localDimension.height - this.iny;
+        g.setColor(localColor2);
+        g.drawLine(inx + 1, iny + 1, k - 2, iny + 1);
+        g.drawLine(inx + 1, iny + 1, inx + 1, m - 2);
+        g.drawLine(inx, m, k, m);
+        g.drawLine(k, iny, k, m);
 
-
-        paramGraphics.setColor(localColor1);
-        paramGraphics.drawLine(i, j, k, j);
-        paramGraphics.drawLine(i, j, i, m);
-        paramGraphics.drawLine(i + 1, m - 1, k - 1, m - 1);
-        paramGraphics.drawLine(k - 1, j + 1, k - 1, m - 1);
-
-        paramGraphics.setColor(localColor2);
-        paramGraphics.drawLine(i + 1, j + 1, k - 2, j + 1);
-        paramGraphics.drawLine(i + 1, j + 1, i + 1, m - 2);
-        paramGraphics.drawLine(i, m, k, m);
-        paramGraphics.drawLine(k, j, k, m);
-
-        FontMetrics localFontMetrics = paramGraphics.getFontMetrics();
+        FontMetrics localFontMetrics = g.getFontMetrics();
         int n = localFontMetrics.stringWidth(this.name);
         int i1 = localFontMetrics.getHeight() - localFontMetrics.getDescent();
-        paramGraphics.setColor(this.bg);
-        paramGraphics.fillRect(2 * this.inx, j, n + 8, 2);
+        g.setColor(this.backgroundColor);
+        g.fillRect(2 * ChiselBox.inx, iny, n + 8, 2);
 
         if (this.enabled) {
-            paramGraphics.setColor(Color.black);
-            paramGraphics.drawString(this.name, 2 * this.inx + 4, this.iny + i1 / 2 - 1);
+            g.setColor(Color.black);
+            g.drawString(this.name, 2 * ChiselBox.inx + 4, ChiselBox.iny + i1 / 2 - 1);
         } else {
-            paramGraphics.setColor(this.bg.brighter());
-            paramGraphics.drawString(this.name, 1 + 2 * this.inx + 4, 1 + this.iny + i1 / 2 - 1);
-            paramGraphics.setColor(this.bg.darker());
-            paramGraphics.drawString(this.name, 2 * this.inx + 4, this.iny + i1 / 2 - 1);
+            g.setColor(this.backgroundColor.brighter());
+            g.drawString(this.name, 1 + 2 * ChiselBox.inx + 4, 1 + ChiselBox.iny + i1 / 2 - 1);
+            g.setColor(this.backgroundColor.darker());
+            g.drawString(this.name, 2 * ChiselBox.inx + 4, ChiselBox.iny + i1 / 2 - 1);
         }
 
-        this.content.setBounds(2 * this.inx, this.iny + i1, localDimension.width - 4 * this.inx, localDimension.height - 2 * (this.iny / 2 + i1));
+        this.content.setBounds(2 * ChiselBox.inx, ChiselBox.iny + i1, ownSize.width - 4 * ChiselBox.inx, ownSize.height - 2 * (ChiselBox.iny / 2 + i1));
 
 
         this.content.paint(this.content.getGraphics());
