@@ -48,17 +48,14 @@ public abstract class SCSI {
     String selectedDevice;
     boolean writeprot = false;
     boolean pleaseExit = false;
-    int targetIsDevice = 0;
     byte[] buffer = new byte[0x20000];
     byte[] req = new byte[12];
 
-    public SCSI(Socket socket, InputStream inStream, BufferedOutputStream outStream, String selectedDevice, boolean targetIsDevice) {
+    public SCSI(Socket socket, InputStream inStream, BufferedOutputStream outStream, String selectedDevice) {
         this.sock = socket;
         this.in = inStream;
         this.out = outStream;
         this.selectedDevice = selectedDevice;
-        this.targetIsDevice = targetIsDevice ? 1 : 0;
-
     }
 
     public static int mk_int32(byte[] buffer, int offset) {

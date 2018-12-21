@@ -11,15 +11,15 @@ public class SCSIcdimage extends SCSI {
     private long mediaSize;
     private virtdevs cdi;
 
-    public SCSIcdimage(Socket paramSocket, InputStream paramInputStream, BufferedOutputStream paramBufferedOutputStream, String paramString, virtdevs paramvirtdevs) throws IOException {
-        super(paramSocket, paramInputStream, paramBufferedOutputStream, paramString, false);
+    public SCSIcdimage(Socket socket, InputStream inputStream, BufferedOutputStream outputStream, String selectedDevice, virtdevs paramvirtdevs) throws IOException {
+        super(socket, inputStream, outputStream, selectedDevice);
         this.cdi = paramvirtdevs;
-        int i = this.media.open(paramString, 0);
+        int i = this.media.open(selectedDevice);
         D.println(D.INFORM, "Media open returns " + i + " / " + this.media.size() + " bytes");
     }
 
     public void process() throws IOException {
-        D.println(D.INFORM, "Device: " + this.selectedDevice + " (" + this.targetIsDevice + ")");
+        D.println(D.INFORM, "Device: " + this.selectedDevice + " (0)");
         read_command(this.req, 12);
         D.println(D.INFORM, "SCSI Request: ");
         D.hexdump(D.INFORM, this.req, 12);
@@ -197,8 +197,8 @@ public class SCSIcdimage extends SCSI {
     private void client_read_toc(byte[] request) throws IOException {
         int i = (request[1] & 0x2) != 0 ? 1 : 0;
         int j = (request[9] & 0xC0) >> 6;
-        int k = (int) (this.media.size() / 2048L);
-        double d = k / 75.0D + 2.0D;
+        int blockCount = (int) (this.media.size() / 2048L);
+        double d = blockCount / 75.0 + 2.0;
         int m = (int) d / 60;
         int n = (int) d % 60;
         int i1 = (int) ((d - (int) d) * 75.0D);
@@ -228,9 +228,9 @@ public class SCSIcdimage extends SCSI {
             this.buffer[14] = -86;
             this.buffer[15] = 0;
             this.buffer[16] = 0;
-            this.buffer[17] = (i != 0 ? (byte) m : (byte) (k >> 16 & 0xFF));
-            this.buffer[18] = (i != 0 ? (byte) n : (byte) (k >>  8 & 0xFF));
-            this.buffer[19] = (i != 0 ? (byte) i1: (byte) (k >>  0 & 0xFF));
+            this.buffer[17] = (i != 0 ? (byte) m : (byte) (blockCount >> 16 & 0xFF));
+            this.buffer[18] = (i != 0 ? (byte) n : (byte) (blockCount >>  8 & 0xFF));
+            this.buffer[19] = (i != 0 ? (byte) i1: (byte) (blockCount >>  0 & 0xFF));
         }
 
         if (j == 1) {
@@ -249,12 +249,12 @@ public class SCSIcdimage extends SCSI {
             this.buffer[11] = 0;
         }
 
-        k = 412;
-        if (i2 < k) k = i2;
-        D.hexdump(D.VERBOSE, this.buffer, k);
-        this.reply.set(0, 0, 0, k);
+        blockCount = 412;
+        if (i2 < blockCount) blockCount = i2;
+        D.hexdump(D.VERBOSE, this.buffer, blockCount);
+        this.reply.set(0, 0, 0, blockCount);
         this.reply.send(this.out);
-        this.out.write(this.buffer, 0, k);
+        this.out.write(this.buffer, 0, blockCount);
         this.out.flush();
     }
 

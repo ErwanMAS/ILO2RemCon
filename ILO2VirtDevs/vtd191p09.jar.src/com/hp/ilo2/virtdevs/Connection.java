@@ -7,9 +7,10 @@ import java.net.Socket;
 import javax.swing.Timer;
 
 public class Connection implements Runnable, java.awt.event.ActionListener {
-    public static final int FLOPPY = 1;
-    public static final int CDROM = 2;
-    public static final int USBKEY = 3;
+    static final int FLOPPY = 1;
+    static final int CDROM = 2;
+    static final int USBKEY = 3;
+
     String host;
     int port;
     int device;
@@ -19,14 +20,13 @@ public class Connection implements Runnable, java.awt.event.ActionListener {
     private Socket socket;
     private java.io.InputStream in;
     private java.io.BufferedOutputStream out;
-    private boolean targetIsDevice;
     private SCSI scsi;
     private boolean writeProtect = false;
     private boolean changing_disks;
     private virtdevs v;
     private VMD5 digest;
 
-    public Connection(String host, int port, int device, String target, int paramInt3, byte[] pre, byte[] key, virtdevs virtdevs)
+    public Connection(String host, int port, int device, String target, byte[] pre, byte[] key, virtdevs virtdevs)
             throws IOException {
         this.host = host;
         this.port = port;
@@ -37,26 +37,19 @@ public class Connection implements Runnable, java.awt.event.ActionListener {
         this.v = virtdevs;
 
         MediaAccess localMediaAccess = new MediaAccess();
-        int i = localMediaAccess.devtype(target);
-        if ((i == 2) || (i == 5)) {
-            this.targetIsDevice = true;
-            D.println(D.FATAL, "Got CD or removable connection\n");
-        } else {
-            this.targetIsDevice = false;
-            D.println(D.FATAL, "Got NO CD or removable connection\n");
-        }
 
-        int j = localMediaAccess.open(target, this.targetIsDevice ? 1 : 0);
-        long l = localMediaAccess.size();
+
+        localMediaAccess.open(target);
+        long size = localMediaAccess.size();
         localMediaAccess.close();
 
-        if ((this.device == FLOPPY) && (l > 2949120L)) {
+        if ((this.device == FLOPPY) && (size > 0x2D_00_00)) {
             this.device = USBKEY;
         }
         this.digest = new VMD5();
     }
 
-    public int connect() throws java.net.UnknownHostException, IOException {
+    public int connect() throws IOException {
         byte[] buffer = {16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
         this.socket = new Socket(this.host, this.port);
@@ -72,10 +65,8 @@ public class Connection implements Runnable, java.awt.event.ActionListener {
         System.arraycopy(keyMD5, 0, this.key, 0, this.key.length);
 
         buffer[1] = ((byte) this.device);
-        if (this.targetIsDevice) {
-            int tmp227_226 = 1;
-            buffer[tmp227_226] = ((byte) (buffer[tmp227_226] | 0xFFFFFF80));
-        }
+        buffer[1] = ((byte) (buffer[1] | 0xFFFFFF80));
+
         this.out.write(buffer);
         this.out.flush();
 
@@ -120,13 +111,13 @@ public class Connection implements Runnable, java.awt.event.ActionListener {
         }
     }
 
-    public void actionPerformed(java.awt.event.ActionEvent paramActionEvent) {
+    public void actionPerformed(java.awt.event.ActionEvent event) {
         try {
             internalClose();
         } catch (Exception ignored) {}
     }
 
-    public void internalClose() throws IOException {
+    private void internalClose() throws IOException {
         if (this.socket != null) this.socket.close();
         this.socket = null;
         this.in = null;
@@ -151,11 +142,10 @@ public class Connection implements Runnable, java.awt.event.ActionListener {
             i = false;
         }
         if (!i) {
-            localMediaAccess.open(paramString, 0);
+            localMediaAccess.open(paramString);
             localMediaAccess.close();
         }
         this.target = paramString;
-        this.targetIsDevice = i;
         this.changing_disks = true;
         this.scsi.change_disk();
     }
@@ -166,16 +156,11 @@ public class Connection implements Runnable, java.awt.event.ActionListener {
 
             try {
                 if ((this.device == FLOPPY) || (this.device == USBKEY)) {
-                    this.scsi = new SCSIFloppy(this.socket, this.in, this.out, this.target, this.targetIsDevice);
+                    this.scsi = new SCSIFloppy(this.socket, this.in, this.out, this.target);
                 } else if (this.device == CDROM) {
-                    if (this.targetIsDevice) {
-                        this.scsi = new SCSIcdrom(this.socket, this.in, this.out, this.target);
-                    } else {
-                        this.scsi = new SCSIcdimage(this.socket, this.in, this.out, this.target, this.v);
-                    }
+                    this.scsi = new SCSIcdimage(this.socket, this.in, this.out, this.target, this.v);
                 } else {
                     D.println(D.FATAL, "Unsupported virtual device " + this.device);
-
                     return;
                 }
             } catch (Exception e) {
