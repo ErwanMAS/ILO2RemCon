@@ -8,52 +8,52 @@ import java.util.Date;
 
 
 public class SCSIFloppy extends SCSI {
-    int fdd_state = 0;
-    long media_sz;
+    int fddState = 0;
+    long mediaSize;
     Date date = new Date();
     byte[] rcs_resp = {0, 0, 0, 16, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 11, 64, 0, 0, 2, 0};
 
 
-    public SCSIFloppy(Socket socket, InputStream inputStream, BufferedOutputStream outputStream, String selectedDevice, boolean targetIsDevice) throws IOException {
-        super(socket, inputStream, outputStream, selectedDevice, targetIsDevice);
-        int i = this.media.open(selectedDevice, targetIsDevice ? 1 : 0);
+    public SCSIFloppy(Socket socket, InputStream inputStream, BufferedOutputStream outputStream, String selectedDevice) throws IOException {
+        super(socket, inputStream, outputStream, selectedDevice);
+        int i = this.media.open(selectedDevice);
         D.println(D.INFORM, "open returns " + i);
     }
 
     public void setWriteProtect(boolean writeProtect) {
         this.writeprot = writeProtect;
 
-        if (this.fdd_state == 2) this.fdd_state = 0;
+        if (this.fddState == 2) this.fddState = 0;
     }
 
     public void process() throws IOException {
         this.date.setTime(System.currentTimeMillis());
         D.println(D.INFORM, "Date = " + this.date);
-        D.println(D.INFORM, "Device: " + this.selectedDevice + " (" + this.targetIsDevice + ")");
+        D.println(D.INFORM, "Device: " + this.selectedDevice + " (0)");
         read_command(this.req, 12);
         D.println(D.INFORM, "SCSI Request: ");
         D.hexdump(D.INFORM, this.req, 12);
-        this.media_sz = this.media.size();
+        this.mediaSize = this.media.size();
 
 
-        if ((this.media_sz < 0) || ((this.media.dio != null) && (this.media.dio.filehandle == -1))) {
+        if ((this.mediaSize < 0)) {
             D.println(D.INFORM, "Disk change detected\n");
             this.media.close();
-            this.media.open(this.selectedDevice, this.targetIsDevice);
-            this.media_sz = this.media.size();
-            this.fdd_state = 0;
+            this.media.open(this.selectedDevice);
+            this.mediaSize = this.media.size();
+            this.fddState = 0;
         }
-        D.println(D.INFORM, "retval=" + this.media_sz + " type=" + this.media.type() + " physdrive=" + (this.media.dio != null ? this.media.dio.PhysicalDevice : -1));
+        D.println(D.INFORM, "retval=" + this.mediaSize + " type=" + this.media.type() + " physdrive=" + -1);
 
 
-        if (this.media_sz <= 0) {
+        if (this.mediaSize <= 0) {
             this.reply.setmedia(0);
-            this.fdd_state = 0;
+            this.fddState = 0;
         } else {
             this.reply.setmedia(36);
-            this.fdd_state += 1;
-            if (this.fdd_state > 2) {
-                this.fdd_state = 2;
+            this.fddState += 1;
+            if (this.fddState > 2) {
+                this.fddState = 2;
             }
         }
         if ((!this.writeprot) && (this.media.wp())) {
@@ -97,11 +97,11 @@ public class SCSIFloppy extends SCSI {
 
     void client_read_capacities()
             throws IOException {
-        if (this.fdd_state != 1) {
+        if (this.fddState != 1) {
             this.reply.set(0, 0, 0, this.rcs_resp.length);
         } else {
             this.reply.set(6, 40, 0, this.rcs_resp.length);
-            this.fdd_state = 2;
+            this.fddState = 2;
         }
         if (this.media.type() == 0) {
             this.rcs_resp[4] = (this.rcs_resp[5] = this.rcs_resp[6] = this.rcs_resp[7] = this.rcs_resp[10] = this.rcs_resp[11] = 0);
@@ -115,14 +115,6 @@ public class SCSIFloppy extends SCSI {
                 this.rcs_resp[7] = ((byte) (int) (l >> 0 & 0xFF));
                 this.rcs_resp[10] = 2;
                 this.rcs_resp[11] = 0;
-            } else {
-                l = this.media.size() / this.media.dio.BytesPerSec;
-                this.rcs_resp[4] = ((byte) (int) (l >> 24 & 0xFF));
-                this.rcs_resp[5] = ((byte) (int) (l >> 16 & 0xFF));
-                this.rcs_resp[6] = ((byte) (int) (l >> 8 & 0xFF));
-                this.rcs_resp[7] = ((byte) (int) (l >> 0 & 0xFF));
-                this.rcs_resp[10] = ((byte) (this.media.dio.BytesPerSec >> 8 & 0xFF));
-                this.rcs_resp[11] = ((byte) (this.media.dio.BytesPerSec & 0xFF));
             }
         }
         this.reply.setflags(this.writeprot);
@@ -132,7 +124,7 @@ public class SCSIFloppy extends SCSI {
     }
 
     void client_send_diagnostic() throws IOException {
-        this.fdd_state = 1;
+        this.fddState = 1;
     }
 
 
@@ -147,7 +139,7 @@ public class SCSIFloppy extends SCSI {
         D.println(D.VERBOSE, "FDIO.client_read:Client read " + l + ", len=" + i);
 
 
-        if ((l >= 0L) && (l < this.media_sz)) {
+        if ((l >= 0L) && (l < this.mediaSize)) {
             try {
                 this.media.read(l, i, this.buffer);
                 this.reply.set(0, 0, 0, i);
@@ -182,7 +174,7 @@ public class SCSIFloppy extends SCSI {
         read_complete(this.buffer, i);
 
         if (!this.writeprot) {
-            if ((l >= 0L) && (l < this.media_sz)) {
+            if ((l >= 0L) && (l < this.mediaSize)) {
                 try {
                     this.media.write(l, i, this.buffer);
                     this.reply.set(0, 0, 0, 0);
@@ -233,13 +225,13 @@ public class SCSIFloppy extends SCSI {
     }
 
     void client_test_unit_ready() throws IOException {
-        if (this.fdd_state == 0) {
+        if (this.fddState == 0) {
             D.println(D.VERBOSE, "media not present");
             this.reply.set(2, 58, 0, 0);
-        } else if (this.fdd_state == 1) {
+        } else if (this.fddState == 1) {
             D.println(D.VERBOSE, "media changed");
             this.reply.set(6, 40, 0, 0);
-            this.fdd_state = 2;
+            this.fddState = 2;
         } else {
             D.println(D.VERBOSE, "device ready");
             this.reply.set(0, 0, 0, 0);
@@ -289,9 +281,9 @@ public class SCSIFloppy extends SCSI {
 
 
         this.reply.set(0, 0, 0, arrayOfByte.length);
-        if (this.fdd_state == 0) {
+        if (this.fddState == 0) {
             this.reply.set(2, 58, 0, 0);
-        } else if (this.fdd_state == 1) {
+        } else if (this.fddState == 1) {
             this.reply.set(6, 40, 0, 0);
         } else if (this.media.type() != 0) {
             long l;
@@ -302,19 +294,11 @@ public class SCSIFloppy extends SCSI {
                 arrayOfByte[2] = ((byte) (int) (l >> 8 & 0xFF));
                 arrayOfByte[3] = ((byte) (int) (l >> 0 & 0xFF));
                 arrayOfByte[6] = 2;
-            } else {
-                l = this.media.size() / this.media.dio.BytesPerSec - 1L;
-                arrayOfByte[0] = ((byte) (int) (l >> 24 & 0xFF));
-                arrayOfByte[1] = ((byte) (int) (l >> 16 & 0xFF));
-                arrayOfByte[2] = ((byte) (int) (l >> 8 & 0xFF));
-                arrayOfByte[3] = ((byte) (int) (l >> 0 & 0xFF));
-                arrayOfByte[6] = ((byte) (this.media.dio.BytesPerSec >> 8 & 0xFF));
-                arrayOfByte[7] = ((byte) (this.media.dio.BytesPerSec & 0xFF));
             }
         }
         this.reply.setflags(this.writeprot);
         this.reply.send(this.out);
-        if (this.fdd_state == 2)
+        if (this.fddState == 2)
             this.out.write(arrayOfByte, 0, arrayOfByte.length);
         this.out.flush();
         D.println(D.VERBOSE, "FDIO.client_read_capacity: ");
